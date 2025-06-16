@@ -8,24 +8,22 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 public interface FactureDAO {
-    // CORRECTED: Ensure method name is 'ajouterFacture' (not 'ajouterFature')
     boolean ajouterFacture(Facture facture) throws SQLException;
 
-    // Récupère une facture par son ID
+    // Mise à jour de la signature pour inclure le numéro de facture
     Facture getFactureById(int id) throws SQLException;
 
-    // Récupère toutes les factures
+    // Mise à jour de la signature pour inclure le numéro de facture
     List<Facture> getAllFactures() throws SQLException;
 
-    // Récupère les factures par utilisateur
+    // Mise à jour de la signature pour inclure le numéro de facture
     List<Facture> getFacturesByUtilisateur(Utilisateur utilisateur) throws SQLException;
 
-    // Récupère les factures dans une plage de dates
+    // Mise à jour de la signature pour inclure le numéro de facture
     List<Facture> getFacturesByDateRange(LocalDateTime startDate, LocalDateTime endDate) throws SQLException;
 
-    // Met à jour une facture existante (utile si on modifie le montant total, bien que souvent recalculé)
+    // Mise à jour de la signature pour inclure le numéro de facture
     boolean mettreAJourFacture(Facture facture) throws SQLException;
 
-    // Supprime une facture par son ID
     boolean supprimerFacture(int id) throws SQLException;
 }

@@ -2,6 +2,7 @@ package model;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter; // Importation pour le formatage dans toString
 import java.util.ArrayList;
 import java.util.List;
 
@@ -9,22 +10,25 @@ public class Facture implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private int id;
+    private String numeroFacture; // NOUVEAU: Numéro de facture personnalisé
     private LocalDateTime dateFacture;
     private double montantTotal;
     private Utilisateur utilisateur; // L'utilisateur (vendeur) qui a créé la facture
     private List<LigneFacture> lignesFacture; // Les lignes de produits de cette facture
 
-    // Constructeur pour créer une nouvelle facture (sans ID, l'ID sera généré par la DB)
+    // Constructeur pour créer une nouvelle facture (sans ID ni numéro de facture initial, ils seront générés par la DB)
     public Facture(Utilisateur utilisateur) {
         this.dateFacture = LocalDateTime.now(); // Date de la facture est la date actuelle
         this.montantTotal = 0.0; // Sera calculé après ajout des lignes
         this.utilisateur = utilisateur;
         this.lignesFacture = new ArrayList<>();
+        this.numeroFacture = null; // Sera défini après l'insertion en DB
     }
 
-    // NOUVEAU/CORRIGÉ: Constructeur pour charger une facture existante depuis la DB (avec ID)
-    public Facture(int id, LocalDateTime dateFacture, double montantTotal, Utilisateur utilisateur) {
+    // Constructeur pour charger une facture existante depuis la DB (avec ID et numéro de facture)
+    public Facture(int id, String numeroFacture, LocalDateTime dateFacture, double montantTotal, Utilisateur utilisateur) {
         this.id = id;
+        this.numeroFacture = numeroFacture; // NOUVEAU: Initialiser le numéro de facture
         this.dateFacture = dateFacture;
         this.montantTotal = montantTotal;
         this.utilisateur = utilisateur;
@@ -36,12 +40,15 @@ public class Facture implements Serializable {
         return id;
     }
 
-    // CORRIGÉ/EXISTANT: getDateFacture
+    // NOUVEAU: Getter pour le numéro de facture
+    public String getNumeroFacture() {
+        return numeroFacture;
+    }
+
     public LocalDateTime getDateFacture() {
         return dateFacture;
     }
 
-    // CORRIGÉ/EXISTANT: getMontantTotal
     public double getMontantTotal() {
         return montantTotal;
     }
@@ -59,6 +66,11 @@ public class Facture implements Serializable {
         this.id = id;
     }
 
+    // NOUVEAU: Setter pour le numéro de facture
+    public void setNumeroFacture(String numeroFacture) {
+        this.numeroFacture = numeroFacture;
+    }
+
     public void setDateFacture(LocalDateTime dateFacture) {
         this.dateFacture = dateFacture;
     }
@@ -71,10 +83,8 @@ public class Facture implements Serializable {
         this.utilisateur = utilisateur;
     }
 
-    // NOUVEAU/CORRIGÉ: setLignesFacture
     public void setLignesFacture(List<LigneFacture> lignesFacture) {
         this.lignesFacture = lignesFacture;
-        // Recalculer le montant total si les lignes sont réinitialisées
         calculerMontantTotal();
     }
 
@@ -83,7 +93,7 @@ public class Facture implements Serializable {
     public void ajouterLigne(LigneFacture ligne) {
         if (ligne != null) {
             this.lignesFacture.add(ligne);
-            calculerMontantTotal(); // Recalcule le total à chaque ajout de ligne
+            calculerMontantTotal();
         }
     }
 
@@ -98,7 +108,8 @@ public class Facture implements Serializable {
     public String toString() {
         return "Facture{" +
                "id=" + id +
-               ", dateFacture=" + dateFacture.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")) +
+               ", numeroFacture='" + numeroFacture + '\'' + // NOUVEAU: dans toString
+               ", dateFacture=" + dateFacture.format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")) +
                ", montantTotal=" + String.format("%.2f", montantTotal) +
                ", utilisateur=" + (utilisateur != null ? utilisateur.getNomUtilisateur() : "N/A") +
                ", nbLignes=" + lignesFacture.size() +

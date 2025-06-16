@@ -2,12 +2,16 @@ package view;
 
 import model.Pharmacie;
 import model.Utilisateur;
+import dao.UtilisateurDAO;
+import dao.impl.UtilisateurDAOImpl;
+import dao.DatabaseManager; // Pour la vérification de la BDD dans main (si non déjà dans App.java)
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-// Pas besoin d'importer UtilisateurDAO ni DatabaseManager ici, la logique est dans App.java
+import java.sql.SQLException;
+import java.util.Objects; // Pour Objects.equals
 
 // Interface pour notifier MainFrame des événements de connexion
 interface LoginListener {
@@ -29,33 +33,29 @@ public class MainFrame extends JFrame implements LoginListener, PharmacieDataLis
     private WelcomePanel welcomePanel;
     private AjouterProduitPanel ajouterProduitPanel;
     private StockPanel stockPanel;
-    private InfoPanel infoPanel; // Ajout du panneau d'information
+    private InfoPanel infoPanel;
+    private VentePanel ventePanel; // NOUVEAU: Instance du VentePanel
 
     private Utilisateur currentUser; // Pour stocker l'utilisateur actuellement connecté
+    private String currentCardName = "Login"; // Garde une trace de la carte actuellement affichée
 
     public MainFrame() {
         // Le chargement initial de la pharmacie doit se faire ici.
-        // Puisque les données sont en BDD, la sérialisation ne concerne plus que les paramètres de base.
-        // La création de l'admin par défaut est maintenant dans App.java
         Pharmacie loadedPharmacie = Pharmacie.chargerDepuisFichier("pharmacie.ser");
         if (loadedPharmacie == null) {
-            // Si le fichier n'existe pas ou est corrompu, crée une nouvelle instance avec des valeurs par défaut.
             this.pharmacie = new Pharmacie("Ma Pharmacie", "123 Rue Principale");
         } else {
-            // Si le fichier existe, utilise l'instance chargée.
             this.pharmacie = loadedPharmacie;
         }
 
         setTitle("Gestion de Pharmacie");
-        setSize(1000, 700); // Augmenter la taille pour plus de confort
-        setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE); // Géré par WindowAdapter
-        setLocationRelativeTo(null); // Centrer la fenêtre
+        setSize(1000, 700);
+        setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
+        setLocationRelativeTo(null);
 
         addWindowListener(new WindowAdapter() {
             @Override
             public void windowClosing(WindowEvent e) {
-                // Sauvegarde seulement les informations de base de la pharmacie (nom, adresse)
-                // les produits, utilisateurs et factures sont dans la BDD.
                 pharmacie.sauvegarderDansFichier("pharmacie.ser");
                 JOptionPane.showMessageDialog(MainFrame.this, "Informations de la pharmacie sauvegardées. Au revoir !");
                 System.exit(0);
@@ -66,27 +66,45 @@ public class MainFrame extends JFrame implements LoginListener, PharmacieDataLis
         mainPanel = new JPanel(cardLayout);
 
         // Initialisation des panels
-        loginPanel = new LoginPanel(pharmacie, this); // 'this' fait référence à MainFrame qui implémente LoginListener
+        loginPanel = new LoginPanel(pharmacie, this);
         welcomePanel = new WelcomePanel();
-        ajouterProduitPanel = new AjouterProduitPanel(pharmacie, this); // 'this' pour le dataListener
-        stockPanel = new StockPanel(pharmacie, this); // 'this' pour le dataListener
-        infoPanel = new InfoPanel(pharmacie, this); // 'this' pour le dataListener
+        ajouterProduitPanel = new AjouterProduitPanel(pharmacie, this);
+        stockPanel = new StockPanel(pharmacie, this);
+        infoPanel = new InfoPanel(pharmacie, this);
+        // NOUVEAU: Initialisation du VentePanel
+        // NOTE: currentUser est null au démarrage, il sera défini après connexion.
+        // Le VentePanel aura une méthode pour le mettre à jour.
+        ventePanel = new VentePanel(pharmacie, currentUser, this); 
 
         mainPanel.add(loginPanel, "Login");
         mainPanel.add(welcomePanel, "Welcome");
         mainPanel.add(ajouterProduitPanel, "AjouterProduit");
         mainPanel.add(stockPanel, "Stock");
-        mainPanel.add(infoPanel, "Info"); // Ajout du panneau d'information
-        // Ajoutez d'autres panels ici
+        mainPanel.add(infoPanel, "Info");
+        mainPanel.add(ventePanel, "Vente"); // NOUVEAU: Ajout du VentePanel
 
         add(mainPanel);
 
         showLoginPanel(); // Afficher le panneau de connexion au démarrage
     }
 
+    // Méthode pour afficher une carte spécifique et mettre à jour le nom de la carte courante
+    private void showCard(String cardName) {
+        cardLayout.show(mainPanel, cardName);
+        this.currentCardName = cardName; // Mettre à jour le nom de la carte courante
+        // Si le panneau de vente est affiché, rafraîchissez son tableau de produits
+        if (Objects.equals(cardName, "Vente")) {
+            ventePanel.refreshProductSelectionTable();
+            ventePanel.setCurrentUser(currentUser); // S'assurer que l'utilisateur est bien défini
+        }
+         if (Objects.equals(cardName, "Stock")) {
+            stockPanel.remplirTable(); // S'assurer que le stock est à jour
+        }
+    }
+
+
     private void showLoginPanel() {
-        cardLayout.show(mainPanel, "Login");
-        // Supprimer la barre de menu tant que l'utilisateur n'est pas connecté
+        showCard("Login"); // Utilise la nouvelle méthode
         if (menuBar != null) {
             setJMenuBar(null);
             revalidate();
@@ -96,112 +114,98 @@ public class MainFrame extends JFrame implements LoginListener, PharmacieDataLis
 
     private void showWelcomePanel(Utilisateur user) {
         welcomePanel.setWelcomeMessage("Bienvenue, " + user.getNomUtilisateur() + " (" + user.getRole() + ")!");
-        cardLayout.show(mainPanel, "Welcome");
-        createMenuBar(user.getRole()); // Créer la barre de menu en fonction du rôle
+        showCard("Welcome"); // Utilise la nouvelle méthode
+        createMenuBar(user.getRole());
     }
     
-    // Méthode utilitaire pour obtenir le nom de la carte actuellement affichée
-    private String getCurrentCardName() {
-        for (Component comp : mainPanel.getComponents()) {
-            if (comp.isVisible()) {
-                CardLayout layout = (CardLayout) mainPanel.getLayout();
-                return ((BorderLayout) mainPanel.getLayout()).getLayoutComponent(BorderLayout.CENTER).getName(); // This is a placeholder, won't work with CardLayout name
-            }
-        }
-        return null;
-    }
+    // Ancien getCurrentCardName simplifié
+    // La méthode showCard() gère maintenant le suivi de la carte courante
+    // Vous pouvez supprimer l'ancienne implémentation de getCurrentCardName si vous utilisez currentCardName.
 
     private void createMenuBar(String role) {
-        // S'assurer qu'une seule barre de menu est créée/affichée
         if (menuBar != null) {
-            setJMenuBar(null); // Retire l'ancienne barre avant de créer la nouvelle
+            setJMenuBar(null);
         }
         
         menuBar = new JMenuBar();
 
-        // Menu "Accueil"
         JMenu homeMenu = new JMenu("Accueil");
         JMenuItem homeItem = new JMenuItem("Accueil Principal");
-        homeItem.addActionListener(_ -> showWelcomePanel(currentUser));
+        homeItem.addActionListener(_ -> showCard("Welcome")); // Utilise showCard
         homeMenu.add(homeItem);
         menuBar.add(homeMenu);
 
-        // Menu "Gestion"
         JMenu gestionMenu = new JMenu("Gestion");
-        if ("admin".equalsIgnoreCase(role)) { // Utiliser equalsIgnoreCase pour la robustesse
+        if ("admin".equalsIgnoreCase(role)) {
             JMenuItem gererUtilisateursItem = new JMenuItem("Gérer Utilisateurs");
-            // gererUtilisateursItem.addActionListener(e -> cardLayout.show(mainPanel, "GererUtilisateurs")); // À décommenter une fois le panel créé
+            // gererUtilisateursItem.addActionListener(e -> showCard("GererUtilisateurs"));
             gestionMenu.add(gererUtilisateursItem);
         }
         
         JMenuItem ajouterProduitItem = new JMenuItem("Ajouter Produit");
-        ajouterProduitItem.addActionListener(_ -> cardLayout.show(mainPanel, "AjouterProduit"));
+        ajouterProduitItem.addActionListener(_ -> showCard("AjouterProduit")); // Utilise showCard
         gestionMenu.add(ajouterProduitItem);
 
         JMenuItem voirStockItem = new JMenuItem("Voir Stock");
-        voirStockItem.addActionListener(_ -> {
-            stockPanel.remplirTable(); // Rafraîchir le stock avant d'afficher
-            cardLayout.show(mainPanel, "Stock");
-        });
+        voirStockItem.addActionListener(_ -> showCard("Stock")); // Utilise showCard
         gestionMenu.add(voirStockItem);
 
-        // Menu Vente (pour tout le monde)
         JMenu venteMenu = new JMenu("Vente");
         JMenuItem effectuerVenteItem = new JMenuItem("Effectuer une Vente");
-        // effectuerVenteItem.addActionListener(e -> cardLayout.show(mainPanel, "EffectuerVente")); // À décommenter une fois le panel créé
+        effectuerVenteItem.addActionListener(_ -> showCard("Vente")); // NOUVEAU: Lier au VentePanel
         venteMenu.add(effectuerVenteItem);
 
         JMenuItem historiqueVentesItem = new JMenuItem("Historique des Ventes");
-        // historiqueVentesItem.addActionListener(e -> cardLayout.show(mainPanel, "HistoriqueVentes")); // À décommenter une fois le panel créé
+        // historiqueVentesItem.addActionListener(e -> showCard("HistoriqueVentes"));
         venteMenu.add(historiqueVentesItem);
 
         menuBar.add(gestionMenu);
-        menuBar.add(venteMenu); // Ajoute le menu vente à la barre de menu
+        menuBar.add(venteMenu);
 
-        // Menu "Pharmacie" (pour accéder aux informations et la gestion de la pharmacie elle-même)
         JMenu pharmacieMenu = new JMenu("Pharmacie");
         JMenuItem infoPharmacieItem = new JMenuItem("Informations Pharmacie");
-        infoPharmacieItem.addActionListener(_ -> {
-            infoPanel.updatePharmacyInfo(); // S'assurer que les infos sont à jour
-            cardLayout.show(mainPanel, "Info");
-        });
+        infoPharmacieItem.addActionListener(_ -> showCard("Info")); // Utilise showCard
         pharmacieMenu.add(infoPharmacieItem);
-        menuBar.add(pharmacieMenu); // Ajoute le menu pharmacie à la barre de menu
+        menuBar.add(pharmacieMenu);
 
-
-        // Menu "Déconnexion"
         JMenu logoutMenu = new JMenu("Session");
         JMenuItem logoutItem = new JMenuItem("Déconnexion");
         logoutItem.addActionListener(_ -> {
             int confirm = JOptionPane.showConfirmDialog(this, "Voulez-vous vraiment vous déconnecter ?", "Déconnexion", JOptionPane.YES_NO_OPTION);
             if (confirm == JOptionPane.YES_OPTION) {
-                currentUser = null; // Effacer l'utilisateur connecté
-                showLoginPanel(); // Revenir au panneau de connexion
+                currentUser = null;
+                showLoginPanel();
             }
         });
         logoutMenu.add(logoutItem);
-        menuBar.add(logoutMenu); // Ajoute le menu session/déconnexion à la barre de menu
+        menuBar.add(logoutMenu);
 
         setJMenuBar(menuBar);
-        revalidate(); // Revalider le cadre pour afficher la nouvelle barre de menu
+        revalidate();
         repaint();
     }
 
-    // Implémentation de l'interface LoginListener
     @Override
     public void onLoginSuccess(Utilisateur user) {
-        this.currentUser = user; // Stocker l'utilisateur connecté
+        this.currentUser = user;
+        // Définir l'utilisateur dans le VentePanel dès la connexion
+        if (ventePanel != null) {
+            ventePanel.setCurrentUser(user);
+        }
         showWelcomePanel(user);
     }
 
-    // Implémentation de l'interface PharmacieDataListener
     @Override
     public void onPharmacieDataChanged() {
-        // Rafraîchir les panels qui affichent des données de la pharmacie si nécessaire
-        // Une méthode plus robuste pour obtenir la carte actuelle est nécessaire si on veut rafraîchir SELECTIVEMENT.
-        // Pour l'instant, on peut forcer le rafraîchissement si le panel est actif ou juste le StockPanel.
-        stockPanel.remplirTable(); // Le stock peut avoir été affecté par une vente ou ajout
-        infoPanel.updatePharmacyInfo(); // Les infos de la pharmacie peuvent avoir été chargées/sauvegardées
-        // Ajoutez d'autres rafraîchissements si vous avez d'autres panels dépendants
+        // La méthode showCard gère déjà certains rafraîchissements lors du changement de panel.
+        // Ici, on peut ajouter des rafraîchissements globaux ou spécifiques si le currentCardName le permet.
+        if (Objects.equals(currentCardName, "Stock")) {
+            stockPanel.remplirTable();
+        } else if (Objects.equals(currentCardName, "Vente")) {
+            ventePanel.refreshProductSelectionTable(); // Pour mettre à jour les stocks après une vente
+        }
+        infoPanel.updatePharmacyInfo(); // Toujours garder les infos de pharmacie à jour si elles sont modifiables.
     }
+    
+    // Main method is in App.java
 }

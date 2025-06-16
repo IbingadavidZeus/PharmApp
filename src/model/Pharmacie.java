@@ -159,4 +159,9 @@ public class Pharmacie implements Serializable {
             return null;
         }
     }
+
+    public List<Produit> rechercherProduits(String critere) {
+       
+        throw new UnsupportedOperationException("Unimplemented method 'rechercherProduits'");
+    }
 }

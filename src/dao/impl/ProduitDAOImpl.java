@@ -84,11 +84,9 @@ public class ProduitDAOImpl implements ProduitDAO {
         return produit;
     }
 
-    // Retained for backward compatibility if `Pharmacie` or other classes still call it.
-    // Ideally, only `findProduitById` should exist if it's meant to be the primary lookup by ID.
     @Override
     public Produit trouverParId(int id) throws SQLException {
-        return findProduitById(id); // Delegates to the more explicitly named method
+        return findProduitById(id);
     }
 
     @Override
@@ -206,6 +204,7 @@ public class ProduitDAOImpl implements ProduitDAO {
     @Override
     public List<Produit> rechercherProduits(String critere) throws SQLException {
         List<Produit> produits = new ArrayList<>();
+        // Recherche par nom ou référence (case-insensitive)
         String sql = "SELECT id_produit, reference, nom, description, prix_ht, quantite, type_produit, est_generique, est_sur_ordonnance, categorie_parapharmacie FROM Produits WHERE nom LIKE ? OR reference LIKE ?";
         Connection conn = null;
         PreparedStatement pstmt = null;
@@ -213,11 +212,14 @@ public class ProduitDAOImpl implements ProduitDAO {
         try {
             conn = DatabaseManager.getConnection();
             pstmt = conn.prepareStatement(sql);
+            // Ajoute des jokers '%' pour la recherche partielle et passe le critère en minuscules (si la BDD n'est pas configurée pour une recherche insensible à la casse par défaut,
+            // il faudrait utiliser LOWER(nom) LIKE LOWER(?) ou le faire côté Java si les données sont petites)
+            // Pour MySQL, LIKE est souvent insensible à la casse par défaut, mais ce n'est pas garanti pour toutes les configurations/DBs.
             pstmt.setString(1, "%" + critere + "%");
             pstmt.setString(2, "%" + critere + "%");
             rs = pstmt.executeQuery();
             while (rs.next()) {
-                produits.add(createProduitFromResultSet(rs));
+                produits.add(createProduitFromResultSet(rs)); // Utilise la méthode utilitaire
             }
         } finally {
             DatabaseManager.close(conn, pstmt, rs);
@@ -242,9 +244,6 @@ public class ProduitDAOImpl implements ProduitDAO {
             String categorie = rs.getString("categorie_parapharmacie");
             return new ProduitParaPharmacie(idProduit, nom, reference, description, prixHT, quantite, categorie);
         } else {
-            // It's critical that the database ONLY contains "Medicament" or "Parapharmacie" for 'type_produit'.
-            // If an unknown type is encountered, it indicates a data integrity issue or a mismatch
-            // between your code and the database. Throwing an exception is the safest approach.
             throw new SQLException("Type de produit inconnu dans la base de données pour la référence " + reference + ": " + typeProduit);
         }
     }
