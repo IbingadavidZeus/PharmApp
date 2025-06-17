@@ -8,6 +8,8 @@ import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.util.Objects;
+// Import pour Toolkit nécessaire pour charger l'image
+import java.awt.Toolkit;
 
 // Interface pour notifier MainFrame des événements de connexion
 interface LoginListener {
@@ -34,6 +36,7 @@ public class MainFrame extends JFrame implements LoginListener, PharmacieDataLis
     private GestionUtilisateursPanel gestionUtilisateursPanel;
     private HistoriqueVentesPanel historiqueVentesPanel;
     private ApprovisionnementPanel approvisionnementPanel;
+
     private Utilisateur currentUser;
     private String currentCardName = "Login";
 
@@ -49,6 +52,17 @@ public class MainFrame extends JFrame implements LoginListener, PharmacieDataLis
         setSize(1000, 700);
         setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         setLocationRelativeTo(null);
+
+        // NOUVEAU: Définir l'icône de la fenêtre
+        try {
+            Image icon = Toolkit.getDefaultToolkit().getImage(getClass().getResource("/image/app_icon.png")); 
+            this.setIconImage(icon);
+        } catch (Exception e) {
+            System.err.println("Erreur lors du chargement de l'icône: " + e.getMessage());
+            e.printStackTrace();
+            // Optionnel: Définir une icône par défaut ou ne rien faire si le chargement échoue
+        }
+
 
         addWindowListener(new WindowAdapter() {
             @Override
@@ -71,7 +85,6 @@ public class MainFrame extends JFrame implements LoginListener, PharmacieDataLis
         ventePanel = new VentePanel(pharmacie, currentUser, this);
         gestionUtilisateursPanel = new GestionUtilisateursPanel(pharmacie, this); 
         historiqueVentesPanel = new HistoriqueVentesPanel(pharmacie);
-        // NOUVEAU: Initialisation du ApprovisionnementPanel
         approvisionnementPanel = new ApprovisionnementPanel(pharmacie, this); 
 
         mainPanel.add(loginPanel, "Login");
@@ -82,7 +95,7 @@ public class MainFrame extends JFrame implements LoginListener, PharmacieDataLis
         mainPanel.add(ventePanel, "Vente");
         mainPanel.add(gestionUtilisateursPanel, "GererUtilisateurs");
         mainPanel.add(historiqueVentesPanel, "HistoriqueVentes");
-        mainPanel.add(approvisionnementPanel, "Approvisionnement"); // NOUVEAU: Ajout du panneau
+        mainPanel.add(approvisionnementPanel, "Approvisionnement");
 
         add(mainPanel);
 
@@ -105,7 +118,7 @@ public class MainFrame extends JFrame implements LoginListener, PharmacieDataLis
             gestionUtilisateursPanel.refreshUsersTable();
         } else if (Objects.equals(cardName, "HistoriqueVentes")) {
             historiqueVentesPanel.refreshFacturesTable();
-        } else if (Objects.equals(cardName, "Approvisionnement")) { // NOUVEAU: Rafraîchir le tableau d'approvisionnement
+        } else if (Objects.equals(cardName, "Approvisionnement")) {
             approvisionnementPanel.refreshProductTable();
         }
     }
@@ -144,7 +157,6 @@ public class MainFrame extends JFrame implements LoginListener, PharmacieDataLis
             gererUtilisateursItem.addActionListener(_ -> showCard("GererUtilisateurs"));
             gestionMenu.add(gererUtilisateursItem);
 
-            // NOUVEAU: Ajout du menu Approvisionner Stock
             JMenuItem approvisionnementItem = new JMenuItem("Approvisionner Stock");
             approvisionnementItem.addActionListener(_ -> showCard("Approvisionnement"));
             gestionMenu.add(approvisionnementItem);
@@ -209,6 +221,6 @@ public class MainFrame extends JFrame implements LoginListener, PharmacieDataLis
         gestionUtilisateursPanel.refreshUsersTable();
         ventePanel.refreshProductSelectionTable();
         historiqueVentesPanel.refreshFacturesTable();
-        approvisionnementPanel.refreshProductTable(); // NOUVEAU: Rafraîchir le tableau d'approvisionnement
+        approvisionnementPanel.refreshProductTable();
     }
 }
