@@ -8,10 +8,12 @@ import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.sql.SQLException;
 import java.util.List;
+import javax.swing.event.ListSelectionEvent; 
+import javax.swing.event.ListSelectionListener; 
 
 public class ApprovisionnementPanel extends JPanel {
     private Pharmacie pharmacie;
-    private PharmacieDataListener dataListener; // Pour notifier MainFrame des changements de stock
+    private PharmacieDataListener dataListener; 
 
     // Composants de l'interface utilisateur
     private JTextField searchField;
@@ -21,7 +23,8 @@ public class ApprovisionnementPanel extends JPanel {
     private JTextField quantityToAddField;
     private JButton addSupplyButton;
 
-    private JLabel messageLabel; // Pour afficher les messages à l'utilisateur
+    private JLabel currentStockLabel; // Label pour afficher le stock actuel du produit sélectionné
+    private JLabel messageLabel; 
 
     // Colonnes pour le tableau de sélection de produits
     private final String[] productColumns = {"Référence", "Nom", "Prix U. TTC", "Stock Actuel"};
@@ -55,6 +58,20 @@ public class ApprovisionnementPanel extends JPanel {
         productTablePanel.add(new JScrollPane(productSelectionTable), BorderLayout.CENTER);
         add(productTablePanel, BorderLayout.CENTER);
 
+        // Ajout du ListSelectionListener au tableau
+        productSelectionTable.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
+            @Override
+            public void valueChanged(ListSelectionEvent e) {
+                if (!e.getValueIsAdjusting() && productSelectionTable.getSelectedRow() != -1) {
+                    displaySelectedProductStock();
+                } else if (productSelectionTable.getSelectedRow() == -1) {
+                    // Si aucune ligne n'est sélectionnée (ex: après un ajout réussi ou un clear)
+                    currentStockLabel.setText("N/A");
+                    currentStockLabel.setForeground(Color.GRAY);
+                }
+            }
+        });
+
         // --- Panel Sud: Quantité à ajouter et Bouton d'approvisionnement ---
         JPanel bottomPanel = new JPanel(new GridBagLayout());
         GridBagConstraints gbc = new GridBagConstraints();
@@ -62,6 +79,17 @@ public class ApprovisionnementPanel extends JPanel {
         gbc.fill = GridBagConstraints.HORIZONTAL;
 
         int row = 0;
+        // Affichage du stock actuel
+        gbc.gridx = 0; gbc.gridy = row; gbc.anchor = GridBagConstraints.EAST;
+        bottomPanel.add(new JLabel("Stock actuel :"), gbc);
+        gbc.gridx = 1; gbc.gridy = row; gbc.anchor = GridBagConstraints.WEST;
+        currentStockLabel = new JLabel("N/A"); 
+        currentStockLabel.setFont(new Font("Arial", Font.BOLD, 14));
+        currentStockLabel.setForeground(Color.DARK_GRAY);
+        bottomPanel.add(currentStockLabel, gbc);
+        row++;
+
+
         gbc.gridx = 0; gbc.gridy = row; gbc.anchor = GridBagConstraints.EAST;
         bottomPanel.add(new JLabel("Quantité à ajouter:"), gbc);
         gbc.gridx = 1; gbc.gridy = row; gbc.anchor = GridBagConstraints.WEST;
@@ -72,7 +100,7 @@ public class ApprovisionnementPanel extends JPanel {
         gbc.gridx = 0; gbc.gridy = row; gbc.gridwidth = 2; gbc.anchor = GridBagConstraints.CENTER;
         addSupplyButton = new JButton("Ajouter au Stock");
         addSupplyButton.setFont(new Font("Arial", Font.BOLD, 16));
-        addSupplyButton.setBackground(new Color(50, 150, 200)); // Bleu
+        addSupplyButton.setBackground(new Color(50, 150, 200)); 
         addSupplyButton.setForeground(Color.WHITE);
         addSupplyButton.addActionListener(_ -> addSupply());
         bottomPanel.add(addSupplyButton, gbc);
@@ -95,7 +123,7 @@ public class ApprovisionnementPanel extends JPanel {
      */
     private void searchProducts() {
         String critere = searchField.getText().trim();
-        productSelectionTableModel.setRowCount(0); // Vider le tableau actuel
+        productSelectionTableModel.setRowCount(0); 
 
         try {
             List<Produit> produits = pharmacie.rechercherProduits(critere);
@@ -104,11 +132,13 @@ public class ApprovisionnementPanel extends JPanel {
                     p.getReference(),
                     p.getNom(),
                     String.format("%.2f", p.calculerPrixTTC()),
-                    p.getQuantite()
+                    p.getQuantite() 
                 });
             }
             messageLabel.setText("Recherche terminée. " + produits.size() + " produit(s) trouvé(s).");
             messageLabel.setForeground(Color.BLACK);
+            currentStockLabel.setText("N/A"); 
+            currentStockLabel.setForeground(Color.GRAY);
         } catch (SQLException e) {
             messageLabel.setText("Erreur lors de la recherche des produits: " + e.getMessage());
             messageLabel.setForeground(Color.RED);
@@ -121,7 +151,7 @@ public class ApprovisionnementPanel extends JPanel {
      */
     public void refreshProductTable() {
         productSelectionTableModel.setRowCount(0);
-        searchField.setText(""); // Efface le champ de recherche
+        searchField.setText(""); 
         try {
             List<Produit> allProducts = pharmacie.getProduits();
             for (Produit p : allProducts) {
@@ -129,11 +159,13 @@ public class ApprovisionnementPanel extends JPanel {
                     p.getReference(),
                     p.getNom(),
                     String.format("%.2f", p.calculerPrixTTC()),
-                    p.getQuantite()
+                    p.getQuantite() 
                 });
             }
             messageLabel.setText("Tableau des produits rafraîchi.");
             messageLabel.setForeground(Color.BLACK);
+            currentStockLabel.setText("N/A"); 
+            currentStockLabel.setForeground(Color.GRAY);
         } catch (SQLException e) {
             messageLabel.setText("Erreur lors du chargement des produits disponibles: " + e.getMessage());
             messageLabel.setForeground(Color.RED);
@@ -162,16 +194,15 @@ public class ApprovisionnementPanel extends JPanel {
                 return;
             }
 
-            // Appel de la nouvelle méthode d'approvisionnement dans Pharmacie
             boolean success = pharmacie.approvisionnerProduit(reference, quantityToAdd);
 
             if (success) {
                 messageLabel.setText("Stock du produit '" + reference + "' mis à jour avec succès. Quantité ajoutée: " + quantityToAdd);
                 messageLabel.setForeground(Color.GREEN);
-                refreshProductTable(); // Rafraîchir le tableau pour montrer le nouveau stock
-                quantityToAddField.setText("1"); // Réinitialiser le champ de quantité
+                refreshProductTable(); 
+                quantityToAddField.setText("1"); 
                 if (dataListener != null) {
-                    dataListener.onPharmacieDataChanged(); // Notifier MainFrame (et donc StockPanel)
+                    dataListener.onPharmacieDataChanged(); 
                 }
             } else {
                 messageLabel.setText("Échec de l'approvisionnement du produit.");
@@ -191,6 +222,28 @@ public class ApprovisionnementPanel extends JPanel {
             messageLabel.setText("Une erreur inattendue est survenue: " + ex.getMessage());
             messageLabel.setForeground(Color.RED);
             ex.printStackTrace();
+        }
+    }
+
+    /**
+     * Affiche le stock actuel du produit sélectionné dans le JLabel dédié, incluant sa valeur financière.
+     */
+    private void displaySelectedProductStock() {
+        int selectedRow = productSelectionTable.getSelectedRow();
+        if (selectedRow != -1) {
+            // Le stock actuel est dans la 4ème colonne (index 3) du modèle du tableau
+            int stockQuantity = (int) productSelectionTableModel.getValueAt(selectedRow, 3);
+            // Le prix unitaire TTC est dans la 3ème colonne (index 2)
+            String priceTTCString = (String) productSelectionTableModel.getValueAt(selectedRow, 2);
+            double priceTTC = Double.parseDouble(priceTTCString.replace(",", ".")); // Gérer le format de la virgule
+
+            double financialValue = stockQuantity * priceTTC;
+
+            currentStockLabel.setText(String.format("%d unités (%.2f FCFA)", stockQuantity, financialValue)); 
+            currentStockLabel.setForeground(Color.BLUE); 
+        } else {
+            currentStockLabel.setText("N/A"); 
+            currentStockLabel.setForeground(Color.GRAY);
         }
     }
 }

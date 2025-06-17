@@ -17,66 +17,68 @@ public class StockPanel extends JPanel {
     private DefaultTableModel tableModel;
     private PharmacieDataListener dataListener;
 
+    private JLabel totalStockValueLabel; // NOUVEAU: Label pour la valeur totale du stock
+
     // Colonnes pour le tableau, incluant la description
     private final String[] columnNames = {"ID", "Référence", "Nom", "Description", "Type", "Prix HT", "Quantité", "Prix TTC", "Générique", "Ordonnance", "Catégorie Para."};
 
     // Constructeur mis à jour pour accepter le PharmacieDataListener
     public StockPanel(Pharmacie pharmacie, PharmacieDataListener listener) {
         this.pharmacie = pharmacie;
-        this.dataListener = listener; // Initialisation du listener
+        this.dataListener = listener;
         setLayout(new BorderLayout());
 
         // --- Configuration du tableau ---
         tableModel = new DefaultTableModel(columnNames, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
-                return false; // Rendre toutes les cellules non éditables par défaut
+                return false;
             }
         };
         productTable = new JTable(tableModel);
-        productTable.setFillsViewportHeight(true); // Pour que le tableau remplisse la zone d'affichage
-        productTable.setAutoCreateRowSorter(true); // Permet le tri par colonne
+        productTable.setFillsViewportHeight(true);
+        productTable.setAutoCreateRowSorter(true);
         
-        // Ajuster la hauteur des lignes si la description est longue
         productTable.setRowHeight(24); 
-        // Vous pouvez aussi tenter de configurer un RowRenderer si les descriptions sont très longues
-        // pour qu'elles s'affichent sur plusieurs lignes, mais c'est plus complexe.
 
         JScrollPane scrollPane = new JScrollPane(productTable);
         add(scrollPane, BorderLayout.CENTER);
 
         // --- Boutons et panel de contrôle ---
-        JPanel controlPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        JPanel controlPanel = new JPanel(new BorderLayout()); // Utiliser BorderLayout pour aligner le label et les boutons
+        
+        // Panel pour les boutons (au centre du controlPanel)
+        JPanel buttonRowPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
         JButton refreshButton = new JButton("Rafraîchir le stock");
         refreshButton.addActionListener(_ -> remplirTable());
-        controlPanel.add(refreshButton);
+        buttonRowPanel.add(refreshButton);
 
         JButton deleteButton = new JButton("Supprimer Produit Sélectionné");
         deleteButton.addActionListener(_ -> {
             int selectedRow = productTable.getSelectedRow();
             if (selectedRow != -1) {
-                String referenceToDelete = (String) tableModel.getValueAt(selectedRow, 1); // La référence est à l'index 1
+                String referenceToDelete = (String) tableModel.getValueAt(selectedRow, 1);
                 int confirm = JOptionPane.showConfirmDialog(this, 
                                                             "Voulez-vous vraiment supprimer le produit '" + referenceToDelete + "' ?", 
                                                             "Confirmer Suppression", JOptionPane.YES_NO_OPTION);
                 if (confirm == JOptionPane.YES_OPTION) {
-                    try { // NOUVEAU: Ajout d'un try-catch pour SQLException ici
+                    try {
                         boolean deleted = pharmacie.supprimerProduit(referenceToDelete);
                         if (deleted) {
                             JOptionPane.showMessageDialog(this, "Produit supprimé avec succès !");
-                            remplirTable(); // Rafraîchir le tableau après suppression
+                            remplirTable();
                             if (dataListener != null) {
-                                dataListener.onPharmacieDataChanged(); // Notifier les autres vues
+                                dataListener.onPharmacieDataChanged();
                             }
                         } else {
                             JOptionPane.showMessageDialog(this, "Erreur lors de la suppression du produit.", "Erreur", JOptionPane.ERROR_MESSAGE);
                         }
-                    } catch (SQLException ex) { // Capture spécifique de l'erreur SQL
+                    } catch (SQLException ex) {
                         JOptionPane.showMessageDialog(this, 
                                                       "Erreur de base de données lors de la suppression: " + ex.getMessage(), 
                                                       "Erreur SQL", JOptionPane.ERROR_MESSAGE);
                         ex.printStackTrace();
-                    } catch (Exception ex) { // Capture des autres exceptions inattendues
+                    } catch (Exception ex) {
                         JOptionPane.showMessageDialog(this, 
                                                       "Une erreur inattendue est survenue lors de la suppression: " + ex.getMessage(), 
                                                       "Erreur", JOptionPane.ERROR_MESSAGE);
@@ -87,8 +89,16 @@ public class StockPanel extends JPanel {
                 JOptionPane.showMessageDialog(this, "Veuillez sélectionner un produit à supprimer.", "Aucune sélection", JOptionPane.WARNING_MESSAGE);
             }
         });
-        controlPanel.add(deleteButton);
+        buttonRowPanel.add(deleteButton);
 
+        controlPanel.add(buttonRowPanel, BorderLayout.CENTER);
+
+        // NOUVEAU: Label pour afficher la valeur totale du stock (en bas à gauche du controlPanel)
+        totalStockValueLabel = new JLabel("Valeur totale du stock : Calcul en cours...");
+        totalStockValueLabel.setFont(new Font("Arial", Font.BOLD, 14));
+        totalStockValueLabel.setForeground(Color.BLUE);
+        totalStockValueLabel.setHorizontalAlignment(SwingConstants.LEFT); // Alignement à gauche
+        controlPanel.add(totalStockValueLabel, BorderLayout.SOUTH); // Placé en bas du controlPanel
 
         add(controlPanel, BorderLayout.SOUTH);
 
@@ -105,41 +115,58 @@ public class StockPanel extends JPanel {
 
             for (Produit p : produits) {
                 Object[] rowData = new Object[columnNames.length];
-                rowData[0] = p.getId();             // ID
-                rowData[1] = p.getReference();      // Référence
-                rowData[2] = p.getNom();            // Nom
-                rowData[3] = p.getDescription();    // NOUVEAU: Description
-                rowData[5] = String.format("%.2f", p.getPrixHt()); // Prix HT
-                rowData[6] = p.getQuantite();       // Quantité
-                rowData[7] = String.format("%.2f", p.calculerPrixTTC()); // Prix TTC
+                rowData[0] = p.getId();
+                rowData[1] = p.getReference();
+                rowData[2] = p.getNom();
+                rowData[3] = p.getDescription();
+                rowData[5] = String.format("%.2f", p.getPrixHt());
+                rowData[6] = p.getQuantite();
+                rowData[7] = String.format("%.2f", p.calculerPrixTTC());
 
                 if (p instanceof Medicament) {
                     Medicament m = (Medicament) p;
-                    rowData[4] = "Médicament"; // Type (index 4 car description est à l'index 3)
-                    rowData[8] = m.isGenerique() ? "Oui" : "Non";       // Générique
-                    rowData[9] = m.isSurOrdonnance() ? "Oui" : "Non";   // Ordonnance
-                    rowData[10] = "N/A"; // Pas de catégorie pour les médicaments
+                    rowData[4] = "Médicament";
+                    rowData[8] = m.isGenerique() ? "Oui" : "Non";
+                    rowData[9] = m.isSurOrdonnance() ? "Oui" : "Non";
+                    rowData[10] = "N/A";
                 } else if (p instanceof ProduitParaPharmacie) {
                     ProduitParaPharmacie pp = (ProduitParaPharmacie) p;
-                    rowData[4] = "Parapharmacie"; // Type
-                    rowData[8] = "N/A"; // Générique (N/A)
-                    rowData[9] = "N/A"; // Ordonnance (N/A)
-                    rowData[10] = pp.getCategorie(); // Catégorie spécifique (Utilise getCategorie())
+                    rowData[4] = "Parapharmacie";
+                    rowData[8] = "N/A";
+                    rowData[9] = "N/A";
+                    rowData[10] = pp.getCategorie();
                 } else {
-                    rowData[4] = "Produit Général"; // Pour les cas non-spécifiques
+                    rowData[4] = "Produit Général";
                     rowData[8] = "N/A";
                     rowData[9] = "N/A";
                     rowData[10] = "N/A";
                 }
                 tableModel.addRow(rowData);
             }
+            // NOUVEAU: Mettre à jour la valeur totale du stock après avoir rempli le tableau
+            updateTotalStockValue();
+
         }
         catch (SQLException ex) {
-            // Afficher un message d'erreur à l'utilisateur si la récupération échoue
             JOptionPane.showMessageDialog(this, 
                                           "Erreur lors du chargement des produits depuis la base de données: " + ex.getMessage(), 
                                           "Erreur de Base de Données", JOptionPane.ERROR_MESSAGE);
-            ex.printStackTrace(); // Imprimer la trace pour le débogage
+            ex.printStackTrace();
+        }
+    }
+
+    /**
+     * Calcule et met à jour le label affichant la valeur financière totale du stock.
+     */
+    private void updateTotalStockValue() {
+        try {
+            double totalValue = pharmacie.calculerValeurTotaleStock();
+            totalStockValueLabel.setText(String.format("Valeur totale du stock : %.2f FCFA", totalValue));
+            totalStockValueLabel.setForeground(Color.BLUE);
+        } catch (SQLException e) {
+            totalStockValueLabel.setText("Valeur totale du stock : Erreur de calcul.");
+            totalStockValueLabel.setForeground(Color.RED);
+            e.printStackTrace();
         }
     }
 }

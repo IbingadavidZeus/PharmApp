@@ -10,9 +10,7 @@ import dao.impl.ProduitDAOImpl;
 import dao.impl.UtilisateurDAOImpl;
 import java.io.*;
 import java.sql.SQLException;
-import java.time.LocalDateTime; // Nécessaire pour getFacturesByDateRange
-// import java.security.MessageDigest; // Les imports pour le hachage ne sont plus nécessaires
-// import java.security.NoSuchAlgorithmException; // Les imports pour le hachage ne sont plus nécessaires
+import java.time.LocalDateTime;
 import java.util.List;
 
 public class Pharmacie implements Serializable {
@@ -100,15 +98,6 @@ public class Pharmacie implements Serializable {
         return produitDAO.mettreAJourQuantite(reference, nouvelleQuantite);
     }
 
-    // NOUVEAU: Méthode pour approvisionner un produit
-    /**
-     * Approvisionne un produit en augmentant sa quantité en stock.
-     * @param reference La référence du produit à approvisionner.
-     * @param quantiteAAjouter La quantité à ajouter au stock existant.
-     * @return true si l'approvisionnement a réussi, false sinon.
-     * @throws SQLException Si une erreur de base de données survient.
-     * @throws IllegalArgumentException Si le produit n'est pas trouvé ou la quantité à ajouter est invalide.
-     */
     public boolean approvisionnerProduit(String reference, int quantiteAAjouter) throws SQLException {
         if (quantiteAAjouter <= 0) {
             throw new IllegalArgumentException("La quantité à ajouter doit être positive.");
@@ -120,10 +109,17 @@ public class Pharmacie implements Serializable {
         }
 
         int nouvelleQuantiteTotale = produit.getQuantite() + quantiteAAjouter;
-        // Utilisez la méthode existante pour mettre à jour la quantité.
-        // La validation de la nouvelleQuantiteTotale (par ex. max int) n'est pas gérée ici,
-        // mais peut être ajoutée si nécessaire.
         return mettreAJourQuantiteProduit(reference, nouvelleQuantiteTotale);
+    }
+
+    // NOUVEAU: Méthode pour calculer la valeur financière totale du stock
+    public double calculerValeurTotaleStock() throws SQLException {
+        double valeurTotale = 0.0;
+        List<Produit> allProducts = produitDAO.getAllProduits();
+        for (Produit p : allProducts) {
+            valeurTotale += p.getQuantite() * p.calculerPrixTTC();
+        }
+        return valeurTotale;
     }
 
 
