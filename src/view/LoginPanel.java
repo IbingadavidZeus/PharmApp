@@ -5,7 +5,7 @@ import model.Utilisateur;
 
 import javax.swing.*;
 import java.awt.*;
-import java.sql.SQLException; // Import SQLException
+import java.util.Arrays; // Pour effacer le tableau de caractères du mot de passe
 
 public class LoginPanel extends JPanel {
     private Pharmacie pharmacie;
@@ -65,7 +65,7 @@ public class LoginPanel extends JPanel {
         gbc.gridwidth = 2; // Span across two columns
         gbc.anchor = GridBagConstraints.CENTER; // Center the button
         loginButton = new JButton("Se connecter");
-        loginButton.addActionListener(_ -> attemptLogin());
+        loginButton.addActionListener(_ -> attemptLogin()); // Suppression du try-catch direct ici
         add(loginButton, gbc);
 
         // Message label
@@ -75,18 +75,16 @@ public class LoginPanel extends JPanel {
         add(messageLabel, gbc);
     }
 
-    private void attemptLogin() {
+    private void attemptLogin() { // Suppression de "throws SQLException"
         String username = usernameField.getText();
-        char[] passwordChars = passwordField.getPassword(); // Get password as char array
+        char[] passwordChars = passwordField.getPassword(); // Récupère le mot de passe comme char[]
+        String plainPassword = new String(passwordChars); // Convertit en String pour l'authentification
 
         Utilisateur user = null;
         try {
-            user = pharmacie.authentifierUtilisateur(username, new String(passwordChars)); // For now, convert to String as per existing Pharmacie method
+            // CORRECTION: Appel de la méthode authentifier() de Pharmacie
+            user = pharmacie.authentifier(username, plainPassword); 
             
-           for (int i = 0; i < passwordChars.length; i++) {
-                passwordChars[i] = 0; 
-            }
-
             if (user != null) {
                 messageLabel.setText("Connexion réussie !");
                 messageLabel.setForeground(Color.GREEN);
@@ -98,17 +96,14 @@ public class LoginPanel extends JPanel {
                 messageLabel.setForeground(Color.RED);
                 passwordField.setText(""); // Efface le champ mot de passe
             }
-        } catch (SQLException e) {
-            // Handle database-related errors
-            messageLabel.setText("Erreur de connexion à la base de données: " + e.getMessage());
+        } catch (Exception e) { // Capture toute autre exception inattendue
+            messageLabel.setText("Une erreur inattendue est survenue: " + e.getMessage());
             messageLabel.setForeground(Color.RED);
-            e.printStackTrace(); // Log the full stack trace for debugging
+            e.printStackTrace();
         } finally {
-            // Ensure the char array is cleared even if an exception occurs
+            // Efface le tableau de caractères du mot de passe pour la sécurité
             if (passwordChars != null) {
-                for (int i = 0; i < passwordChars.length; i++) {
-                    passwordChars[i] = 0;
-                }
+                Arrays.fill(passwordChars, ' '); 
             }
         }
     }

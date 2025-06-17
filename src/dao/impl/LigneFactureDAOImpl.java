@@ -20,19 +20,13 @@ public class LigneFactureDAOImpl implements LigneFactureDAO {
 
     @Override
     public boolean ajouterLigneFacture(LigneFacture ligneFacture) throws SQLException {
-        String sql = "INSERT INTO Lignes_Facture (id_facture, id_produit, quantite, prix_unitaire, sous_total) VALUES (?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO lignesfacture (id_facture, id_produit, quantite_vendue, prix_unitaire_ht, sous_total) VALUES (?, ?, ?, ?, ?)";
         Connection conn = null;
         PreparedStatement pstmt = null;
         ResultSet rs = null;
 
         try {
             conn = DatabaseManager.getConnection();
-            // Important: Ne pas utiliser Statement.RETURN_GENERATED_KEYS ici si la transaction est gérée par FactureDAO
-            // La connexion est passée de FactureDAOImpl si elle fait partie de la même transaction.
-            // Cependant, si appelée individuellement, elle aura besoin de son propre ID auto-généré.
-            // Pour l'ajout par le FactureDAO, on part du principe que la connexion est déjà dans une transaction.
-            // Pour un usage autonome (moins courant), il faudrait gérer l'ID.
-            // Pour le moment, on ne gère pas l'ID généré ici, car il est principalement géré par FactureDAOImpl.
             pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS); // Ajout pour le cas où elle est appelée seule
 
             pstmt.setInt(1, ligneFacture.getIdFacture());
@@ -58,7 +52,7 @@ public class LigneFactureDAOImpl implements LigneFactureDAO {
     @Override
     public List<LigneFacture> getLignesFactureByFactureId(int idFacture) throws SQLException {
         List<LigneFacture> lignes = new ArrayList<>();
-        String sql = "SELECT id_ligne, id_produit, quantite, prix_unitaire, sous_total FROM Lignes_Facture WHERE id_facture = ?";
+        String sql = "SELECT id_ligne_facture, id_produit, _vendue, prix_unitaire_ht, sous_total FROM lignesfacture WHERE id_facture = ?";
         Connection conn = null;
         PreparedStatement pstmt = null;
         ResultSet rs = null;
@@ -70,10 +64,10 @@ public class LigneFactureDAOImpl implements LigneFactureDAO {
             rs = pstmt.executeQuery();
 
             while (rs.next()) {
-                int idLigne = rs.getInt("id_ligne");
+                int idLigne = rs.getInt("id_ligne_facture");
                 int idProduit = rs.getInt("id_produit");
-                int quantite = rs.getInt("quantite");
-                double prixUnitaire = rs.getDouble("prix_unitaire");
+                int quantite = rs.getInt("quantite_vendue");
+                double prixUnitaire = rs.getDouble("prix_unitaire_ht");
                 double sousTotal = rs.getDouble("sous_total");
 
                 // Charger le produit associé
@@ -90,7 +84,7 @@ public class LigneFactureDAOImpl implements LigneFactureDAO {
 
     @Override
     public LigneFacture getLigneFactureById(int id) throws SQLException {
-        String sql = "SELECT id_ligne, id_facture, id_produit, quantite, prix_unitaire, sous_total FROM Lignes_Facture WHERE id_ligne = ?";
+        String sql = "SELECT id_ligne_facture, id_facture, id_produit, quantite_vendue, prix_unitaire_ht, sous_total FROM lignesfacture WHERE id_ligne_facture = ?";
         Connection conn = null;
         PreparedStatement pstmt = null;
         ResultSet rs = null;
@@ -103,11 +97,11 @@ public class LigneFactureDAOImpl implements LigneFactureDAO {
             rs = pstmt.executeQuery();
 
             if (rs.next()) {
-                int idLigne = rs.getInt("id_ligne");
+                int idLigne = rs.getInt("id_ligne_facture");
                 int idFacture = rs.getInt("id_facture");
                 int idProduit = rs.getInt("id_produit");
-                int quantite = rs.getInt("quantite");
-                double prixUnitaire = rs.getDouble("prix_unitaire");
+                int quantite = rs.getInt("quantite_vendue");
+                double prixUnitaire = rs.getDouble("prix_unitaire_ht");
                 double sousTotal = rs.getDouble("sous_total");
 
                 Produit produit = produitDAO.findProduitById(idProduit);
@@ -122,7 +116,7 @@ public class LigneFactureDAOImpl implements LigneFactureDAO {
 
     @Override
     public boolean mettreAJourLigneFacture(LigneFacture ligneFacture) throws SQLException {
-        String sql = "UPDATE Lignes_Facture SET id_facture = ?, id_produit = ?, quantite = ?, prix_unitaire = ?, sous_total = ? WHERE id_ligne = ?";
+        String sql = "UPDATE lignesfacture SET id_facture = ?, id_produit = ?, quantite_vendue = ?, prix_unitaire_ht = ?, sous_total = ? WHERE id_ligne_facture = ?";
         Connection conn = null;
         PreparedStatement pstmt = null;
 
@@ -145,7 +139,7 @@ public class LigneFactureDAOImpl implements LigneFactureDAO {
 
     @Override
     public boolean supprimerLigneFacture(int id) throws SQLException {
-        String sql = "DELETE FROM Lignes_Facture WHERE id_ligne = ?";
+        String sql = "DELETE FROM lignesfacture WHERE id_ligne_facture = ?";
         Connection conn = null;
         PreparedStatement pstmt = null;
 
@@ -163,7 +157,7 @@ public class LigneFactureDAOImpl implements LigneFactureDAO {
 
     @Override
     public boolean supprimerLignesFactureByFactureId(int idFacture) throws SQLException {
-        String sql = "DELETE FROM Lignes_Facture WHERE id_facture = ?";
+        String sql = "DELETE FROM lignesfacture WHERE id_facture = ?";
         Connection conn = null;
         PreparedStatement pstmt = null;
 

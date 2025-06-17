@@ -15,7 +15,7 @@ public class StockPanel extends JPanel {
     private Pharmacie pharmacie;
     private JTable productTable;
     private DefaultTableModel tableModel;
-    private PharmacieDataListener dataListener; // Pour notifier la MainFrame
+    private PharmacieDataListener dataListener;
 
     // Colonnes pour le tableau, incluant la description
     private final String[] columnNames = {"ID", "Référence", "Nom", "Description", "Type", "Prix HT", "Quantité", "Prix TTC", "Générique", "Ordonnance", "Catégorie Para."};
@@ -51,20 +51,16 @@ public class StockPanel extends JPanel {
         refreshButton.addActionListener(_ -> remplirTable());
         controlPanel.add(refreshButton);
 
-        // Ajoutez ici d'autres boutons si nécessaire, par exemple "Modifier", "Supprimer"
-        // Exemple d'un bouton Supprimer (la logique d'implémentation viendrait plus tard)
         JButton deleteButton = new JButton("Supprimer Produit Sélectionné");
         deleteButton.addActionListener(_ -> {
             int selectedRow = productTable.getSelectedRow();
             if (selectedRow != -1) {
-                // Obtenez la référence ou l'ID du produit depuis la ligne sélectionnée
                 String referenceToDelete = (String) tableModel.getValueAt(selectedRow, 1); // La référence est à l'index 1
                 int confirm = JOptionPane.showConfirmDialog(this, 
                                                             "Voulez-vous vraiment supprimer le produit '" + referenceToDelete + "' ?", 
                                                             "Confirmer Suppression", JOptionPane.YES_NO_OPTION);
                 if (confirm == JOptionPane.YES_OPTION) {
-                    try {
-                        // Supposer que Pharmacie a une méthode supprimerProduit(String reference)
+                    try { // NOUVEAU: Ajout d'un try-catch pour SQLException ici
                         boolean deleted = pharmacie.supprimerProduit(referenceToDelete);
                         if (deleted) {
                             JOptionPane.showMessageDialog(this, "Produit supprimé avec succès !");
@@ -75,10 +71,16 @@ public class StockPanel extends JPanel {
                         } else {
                             JOptionPane.showMessageDialog(this, "Erreur lors de la suppression du produit.", "Erreur", JOptionPane.ERROR_MESSAGE);
                         }
-                    }
-                    catch (SQLException ex) {
-                        JOptionPane.showMessageDialog(this, "Erreur lors de la suppression du produit: " + ex.getMessage(), "Erreur de Base de Données", JOptionPane.ERROR_MESSAGE);
-                        ex.printStackTrace(); // Imprimer la trace pour le débogage
+                    } catch (SQLException ex) { // Capture spécifique de l'erreur SQL
+                        JOptionPane.showMessageDialog(this, 
+                                                      "Erreur de base de données lors de la suppression: " + ex.getMessage(), 
+                                                      "Erreur SQL", JOptionPane.ERROR_MESSAGE);
+                        ex.printStackTrace();
+                    } catch (Exception ex) { // Capture des autres exceptions inattendues
+                        JOptionPane.showMessageDialog(this, 
+                                                      "Une erreur inattendue est survenue lors de la suppression: " + ex.getMessage(), 
+                                                      "Erreur", JOptionPane.ERROR_MESSAGE);
+                        ex.printStackTrace();
                     }
                 }
             } else {

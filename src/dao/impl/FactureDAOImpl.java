@@ -25,8 +25,8 @@ public class FactureDAOImpl implements FactureDAO {
 
     @Override
     public boolean ajouterFacture(Facture facture) throws SQLException {
-        // SQL initialement sans numero_facture car il est généré APRES l'ID
-        String sqlInsertFacture = "INSERT INTO Factures (date_facture, total_ttc, id_utilisateur) VALUES (?, ?, ?)";
+        // MODIFIÉ: Inclure total_ht dans l'INSERT initial
+        String sqlInsertFacture = "INSERT INTO Factures (date_facture, total_ttc, total_ht, id_utilisateur) VALUES (?, ?, ?, ?)";
         String sqlUpdateNumeroFacture = "UPDATE Factures SET numero_facture = ? WHERE id_facture = ?"; 
         
         Connection conn = null;
@@ -36,13 +36,14 @@ public class FactureDAOImpl implements FactureDAO {
 
         try {
             conn = DatabaseManager.getConnection();
-            conn.setAutoCommit(false); // Start transaction
+            conn.setAutoCommit(false); // Début de la transaction
 
-            // 1. Insert the main invoice without the custom number
+            // 1. Insérer la facture principale avec toutes les valeurs
             pstmtInsertFacture = conn.prepareStatement(sqlInsertFacture, Statement.RETURN_GENERATED_KEYS);
             pstmtInsertFacture.setTimestamp(1, Timestamp.valueOf(facture.getDateFacture()));
-            pstmtInsertFacture.setDouble(2, facture.getMontantTotal());
-            pstmtInsertFacture.setInt(3, facture.getUtilisateur().getId());
+            pstmtInsertFacture.setDouble(2, facture.getMontantTotal()); // total_ttc
+            pstmtInsertFacture.setDouble(3, facture.getTotalHt());      // NOUVEAU: total_ht
+            pstmtInsertFacture.setInt(4, facture.getUtilisateur().getId());
 
             int rowsAffectedFacture = pstmtInsertFacture.executeUpdate();
 
@@ -50,25 +51,25 @@ public class FactureDAOImpl implements FactureDAO {
                 rs = pstmtInsertFacture.getGeneratedKeys();
                 if (rs.next()) {
                     int generatedId = rs.getInt(1);
-                    facture.setId(generatedId); // Set the generated ID on the Java object
+                    facture.setId(generatedId);
 
-                    // 2. Generate the custom invoice number using the generated ID
+                    // 2. Générer le numéro de facture personnalisé
                     String numeroFacture = facture.getUtilisateur().getNomUtilisateur().toUpperCase() + "-" + String.format("%06d", generatedId);
-                    facture.setNumeroFacture(numeroFacture); // Set the custom number on the Java object
+                    facture.setNumeroFacture(numeroFacture);
 
-                    // 3. Update the newly inserted invoice with the generated custom number
+                    // 3. Mettre à jour la facture avec le numéro de facture généré
                     pstmtUpdateNumeroFacture = conn.prepareStatement(sqlUpdateNumeroFacture);
                     pstmtUpdateNumeroFacture.setString(1, numeroFacture);
                     pstmtUpdateNumeroFacture.setInt(2, generatedId);
                     pstmtUpdateNumeroFacture.executeUpdate();
 
-                    // 4. Insert invoice lines
+                    // 4. Insérer les lignes de facture
                     for (LigneFacture ligne : facture.getLignesFacture()) {
-                        ligne.setIdFacture(facture.getId()); 
-                        ligneFactureDAO.ajouterLigneFacture(ligne); 
+                        ligne.setIdFacture(facture.getId());
+                        ligneFactureDAO.ajouterLigneFacture(ligne);
                     }
 
-                    // 5. Update product quantities in stock
+                    // 5. Mettre à jour la quantité des produits dans le stock
                     String sqlUpdateProductQuantite = "UPDATE Produits SET quantite = quantite - ? WHERE id_produit = ?";
                     PreparedStatement pstmtUpdateProduct = conn.prepareStatement(sqlUpdateProductQuantite);
                     for (LigneFacture ligne : facture.getLignesFacture()) {
@@ -78,20 +79,20 @@ public class FactureDAOImpl implements FactureDAO {
                     }
                     pstmtUpdateProduct.executeBatch();
 
-                    conn.commit(); // Commit the transaction
+                    conn.commit();
                     return true;
                 }
             }
-            conn.rollback(); // Rollback if nothing inserted
+            conn.rollback();
             return false;
         } catch (SQLException e) {
             if (conn != null) {
-                conn.rollback(); // Rollback in case of error
+                conn.rollback();
             }
-            throw e; // Propagate the exception
+            throw e;
         } finally {
             if (conn != null) {
-                conn.setAutoCommit(true); // Reset auto-commit
+                conn.setAutoCommit(true);
             }
             DatabaseManager.close(null, pstmtInsertFacture, rs);
             DatabaseManager.close(null, pstmtUpdateNumeroFacture); 
@@ -101,8 +102,8 @@ public class FactureDAOImpl implements FactureDAO {
 
     @Override
     public Facture getFactureById(int id) throws SQLException {
-        // Select numero_facture
-        String sql = "SELECT id_facture, numero_facture, date_facture, total_ttc, id_utilisateur FROM Factures WHERE id_facture = ?";
+        // MODIFIÉ: Sélectionner numero_facture et total_ht
+        String sql = "SELECT id_facture, numero_facture, date_facture, total_ttc, total_ht, id_utilisateur FROM Factures WHERE id_facture = ?";
         Connection conn = null;
         PreparedStatement pstmt = null;
         ResultSet rs = null;
@@ -115,14 +116,16 @@ public class FactureDAOImpl implements FactureDAO {
             rs = pstmt.executeQuery();
 
             if (rs.next()) {
-                String numeroFacture = rs.getString("numero_facture"); 
+                String numeroFacture = rs.getString("numero_facture");
                 LocalDateTime dateFacture = rs.getTimestamp("date_facture").toLocalDateTime();
                 double montantTotal = rs.getDouble("total_ttc");
+                double totalHt = rs.getDouble("total_ht"); // NOUVEAU: Récupérer total_ht
                 int idUtilisateur = rs.getInt("id_utilisateur");
 
                 Utilisateur utilisateur = utilisateurDAO.getUtilisateurById(idUtilisateur);
 
-                facture = new Facture(id, numeroFacture, dateFacture, montantTotal, utilisateur);
+                // MODIFIÉ: Utiliser le constructeur avec numeroFacture et totalHt
+                facture = new Facture(id, numeroFacture, dateFacture, montantTotal, totalHt, utilisateur);
 
                 List<LigneFacture> lignes = ligneFactureDAO.getLignesFactureByFactureId(id);
                 facture.setLignesFacture(lignes);
@@ -136,8 +139,8 @@ public class FactureDAOImpl implements FactureDAO {
     @Override
     public List<Facture> getAllFactures() throws SQLException {
         List<Facture> factures = new ArrayList<>();
-        // Select numero_facture
-        String sql = "SELECT id_facture, numero_facture, date_facture, total_ttc, id_utilisateur FROM Factures ORDER BY date_facture DESC";
+        // MODIFIÉ: Sélectionner numero_facture et total_ht
+        String sql = "SELECT id_facture, numero_facture, date_facture, total_ttc, total_ht, id_utilisateur FROM Factures ORDER BY date_facture DESC";
         Connection conn = null;
         Statement stmt = null;
         ResultSet rs = null;
@@ -149,14 +152,16 @@ public class FactureDAOImpl implements FactureDAO {
 
             while (rs.next()) {
                 int idFacture = rs.getInt("id_facture");
-                String numeroFacture = rs.getString("numero_facture"); 
+                String numeroFacture = rs.getString("numero_facture");
                 LocalDateTime dateFacture = rs.getTimestamp("date_facture").toLocalDateTime();
                 double montantTotal = rs.getDouble("total_ttc");
+                double totalHt = rs.getDouble("total_ht"); // NOUVEAU: Récupérer total_ht
                 int idUtilisateur = rs.getInt("id_utilisateur");
 
                 Utilisateur utilisateur = utilisateurDAO.getUtilisateurById(idUtilisateur);
 
-                Facture facture = new Facture(idFacture, numeroFacture, dateFacture, montantTotal, utilisateur);
+                // MODIFIÉ: Utiliser le constructeur avec numeroFacture et totalHt
+                Facture facture = new Facture(idFacture, numeroFacture, dateFacture, montantTotal, totalHt, utilisateur);
                 factures.add(facture);
             }
         } finally {
@@ -168,8 +173,8 @@ public class FactureDAOImpl implements FactureDAO {
     @Override
     public List<Facture> getFacturesByUtilisateur(Utilisateur utilisateur) throws SQLException {
         List<Facture> factures = new ArrayList<>();
-        // Select numero_facture
-        String sql = "SELECT id_facture, numero_facture, date_facture, total_ttc, id_utilisateur FROM Factures WHERE id_utilisateur = ? ORDER BY date_facture DESC";
+        // MODIFIÉ: Sélectionner numero_facture et total_ht
+        String sql = "SELECT id_facture, numero_facture, date_facture, total_ttc, total_ht, id_utilisateur FROM Factures WHERE id_utilisateur = ? ORDER BY date_facture DESC";
         Connection conn = null;
         PreparedStatement pstmt = null;
         ResultSet rs = null;
@@ -182,11 +187,13 @@ public class FactureDAOImpl implements FactureDAO {
 
             while (rs.next()) {
                 int idFacture = rs.getInt("id_facture");
-                String numeroFacture = rs.getString("numero_facture"); 
+                String numeroFacture = rs.getString("numero_facture");
                 LocalDateTime dateFacture = rs.getTimestamp("date_facture").toLocalDateTime();
                 double montantTotal = rs.getDouble("total_ttc");
+                double totalHt = rs.getDouble("total_ht"); // NOUVEAU: Récupérer total_ht
                 
-                Facture facture = new Facture(idFacture, numeroFacture, dateFacture, montantTotal, utilisateur);
+                // MODIFIÉ: Utiliser le constructeur avec numeroFacture et totalHt
+                Facture facture = new Facture(idFacture, numeroFacture, dateFacture, montantTotal, totalHt, utilisateur);
                 factures.add(facture);
             }
         } finally {
@@ -198,8 +205,8 @@ public class FactureDAOImpl implements FactureDAO {
     @Override
     public List<Facture> getFacturesByDateRange(LocalDateTime startDate, LocalDateTime endDate) throws SQLException {
         List<Facture> factures = new ArrayList<>();
-        // Select numero_facture
-        String sql = "SELECT id_facture, numero_facture, date_facture, total_ttc, id_utilisateur FROM Factures WHERE date_facture BETWEEN ? AND ? ORDER BY date_facture DESC";
+        // MODIFIÉ: Sélectionner numero_facture et total_ht
+        String sql = "SELECT id_facture, numero_facture, date_facture, total_ttc, total_ht, id_utilisateur FROM Factures WHERE date_facture BETWEEN ? AND ? ORDER BY date_facture DESC";
         Connection conn = null;
         PreparedStatement pstmt = null;
         ResultSet rs = null;
@@ -213,14 +220,16 @@ public class FactureDAOImpl implements FactureDAO {
 
             while (rs.next()) {
                 int idFacture = rs.getInt("id_facture");
-                String numeroFacture = rs.getString("numero_facture"); 
+                String numeroFacture = rs.getString("numero_facture");
                 LocalDateTime dateFacture = rs.getTimestamp("date_facture").toLocalDateTime();
                 double montantTotal = rs.getDouble("total_ttc");
+                double totalHt = rs.getDouble("total_ht"); // NOUVEAU: Récupérer total_ht
                 int idUtilisateur = rs.getInt("id_utilisateur");
 
                 Utilisateur utilisateur = utilisateurDAO.getUtilisateurById(idUtilisateur);
                 
-                Facture facture = new Facture(idFacture, numeroFacture, dateFacture, montantTotal, utilisateur);
+                // MODIFIÉ: Utiliser le constructeur avec numeroFacture et totalHt
+                Facture facture = new Facture(idFacture, numeroFacture, dateFacture, montantTotal, totalHt, utilisateur);
                 factures.add(facture);
             }
         } finally {
@@ -231,8 +240,8 @@ public class FactureDAOImpl implements FactureDAO {
 
     @Override
     public boolean mettreAJourFacture(Facture facture) throws SQLException {
-        // Include numero_facture in the update
-        String sql = "UPDATE Factures SET numero_facture = ?, date_facture = ?, total_ttc = ?, id_utilisateur = ? WHERE id_facture = ?";
+        // MODIFIÉ: Inclure total_ht dans la mise à jour
+        String sql = "UPDATE Factures SET numero_facture = ?, date_facture = ?, total_ttc = ?, total_ht = ?, id_utilisateur = ? WHERE id_facture = ?";
         Connection conn = null;
         PreparedStatement pstmt = null;
 
@@ -241,9 +250,10 @@ public class FactureDAOImpl implements FactureDAO {
             pstmt = conn.prepareStatement(sql);
             pstmt.setString(1, facture.getNumeroFacture());
             pstmt.setTimestamp(2, Timestamp.valueOf(facture.getDateFacture()));
-            pstmt.setDouble(3, facture.getMontantTotal());
-            pstmt.setInt(4, facture.getUtilisateur().getId());
-            pstmt.setInt(5, facture.getId());
+            pstmt.setDouble(3, facture.getMontantTotal()); // total_ttc
+            pstmt.setDouble(4, facture.getTotalHt());      // NOUVEAU: total_ht
+            pstmt.setInt(5, facture.getUtilisateur().getId());
+            pstmt.setInt(6, facture.getId());
 
             int rowsAffected = pstmt.executeUpdate();
             return rowsAffected > 0;

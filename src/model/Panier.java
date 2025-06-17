@@ -31,40 +31,34 @@ public class Panier {
             return "La quantité doit être supérieure à zéro.";
         }
 
-        try {
-            // 1. Récupérer le produit depuis la base de données
-            Produit produit = pharmacie.getProduitByReference(reference);
-            if (produit == null) {
-                return "Produit avec la référence '" + reference + "' introuvable.";
-            }
-
-            // 2. Vérifier si le produit existe déjà dans le panier
-            Optional<LigneFacture> existingLigne = lignesPanier.stream()
-                .filter(lf -> lf.getProduit().getId() == produit.getId())
-                .findFirst();
-
-            int quantiteActuelleDansPanier = existingLigne.map(LigneFacture::getQuantite).orElse(0);
-            int quantiteDesireeTotale = quantiteActuelleDansPanier + quantite;
-
-            // 3. Vérifier la disponibilité du stock
-            if (produit.getQuantite() < quantiteDesireeTotale) {
-                return "Quantité insuffisante en stock pour '" + produit.getNom() + "'. Stock disponible: " + produit.getQuantite() + ".";
-            }
-
-            if (existingLigne.isPresent()) {
-                // Mettre à jour la quantité d'une ligne existante
-                LigneFacture ligne = existingLigne.get();
-                ligne.setQuantite(quantiteDesireeTotale); // setQuantite recalcule le sousTotal
-            } else {
-                // Ajouter une nouvelle ligne (le prix unitaire est capturé au moment de la création de LigneFacture)
-                lignesPanier.add(new LigneFacture(produit, quantite));
-            }
-            return null; // Succès
-        } catch (SQLException e) {
-            System.err.println("Erreur SQL lors de l'ajout au panier: " + e.getMessage());
-            e.printStackTrace();
-            return "Erreur de base de données lors de l'ajout du produit.";
+        // 1. Récupérer le produit depuis la base de données
+        Produit produit = pharmacie.getProduitByReference(reference);
+        if (produit == null) {
+            return "Produit avec la référence '" + reference + "' introuvable.";
         }
+
+        // 2. Vérifier si le produit existe déjà dans le panier
+        Optional<LigneFacture> existingLigne = lignesPanier.stream()
+            .filter(lf -> lf.getProduit().getId() == produit.getId())
+            .findFirst();
+
+        int quantiteActuelleDansPanier = existingLigne.map(LigneFacture::getQuantite).orElse(0);
+        int quantiteDesireeTotale = quantiteActuelleDansPanier + quantite;
+
+        // 3. Vérifier la disponibilité du stock
+        if (produit.getQuantite() < quantiteDesireeTotale) {
+            return "Quantité insuffisante en stock pour '" + produit.getNom() + "'. Stock disponible: " + produit.getQuantite() + ".";
+        }
+
+        if (existingLigne.isPresent()) {
+            // Mettre à jour la quantité d'une ligne existante
+            LigneFacture ligne = existingLigne.get();
+            ligne.setQuantite(quantiteDesireeTotale); // setQuantite recalcule le sousTotal
+        } else {
+            // Ajouter une nouvelle ligne (le prix unitaire est capturé au moment de la création de LigneFacture)
+            lignesPanier.add(new LigneFacture(produit, quantite));
+        }
+        return null; // Succès
     }
 
     /**

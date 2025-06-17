@@ -2,7 +2,7 @@ package model;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter; // Importation pour le formatage dans toString
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -10,29 +10,35 @@ public class Facture implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private int id;
-    private String numeroFacture; // NOUVEAU: Numéro de facture personnalisé
+    private String numeroFacture;
     private LocalDateTime dateFacture;
-    private double montantTotal;
-    private Utilisateur utilisateur; // L'utilisateur (vendeur) qui a créé la facture
-    private List<LigneFacture> lignesFacture; // Les lignes de produits de cette facture
+    private double montantTotal; // Montant total TTC
+    private double totalHt;      // NOUVEAU: Montant total HT
+    private Utilisateur utilisateur;
+    private List<LigneFacture> lignesFacture;
 
-    // Constructeur pour créer une nouvelle facture (sans ID ni numéro de facture initial, ils seront générés par la DB)
+    // Taux de TVA (exemple: 18%)
+    private static final double TAUX_TVA = 0.18; 
+
+    // Constructeur pour créer une nouvelle facture
     public Facture(Utilisateur utilisateur) {
-        this.dateFacture = LocalDateTime.now(); // Date de la facture est la date actuelle
-        this.montantTotal = 0.0; // Sera calculé après ajout des lignes
+        this.dateFacture = LocalDateTime.now();
+        this.montantTotal = 0.0;
+        this.totalHt = 0.0; // Initialiser
         this.utilisateur = utilisateur;
         this.lignesFacture = new ArrayList<>();
-        this.numeroFacture = null; // Sera défini après l'insertion en DB
+        this.numeroFacture = null;
     }
 
-    // Constructeur pour charger une facture existante depuis la DB (avec ID et numéro de facture)
-    public Facture(int id, String numeroFacture, LocalDateTime dateFacture, double montantTotal, Utilisateur utilisateur) {
+    // NOUVEAU/MODIFIÉ: Constructeur pour charger une facture existante depuis la DB (avec totalHt)
+    public Facture(int id, String numeroFacture, LocalDateTime dateFacture, double montantTotal, double totalHt, Utilisateur utilisateur) {
         this.id = id;
-        this.numeroFacture = numeroFacture; // NOUVEAU: Initialiser le numéro de facture
+        this.numeroFacture = numeroFacture;
         this.dateFacture = dateFacture;
         this.montantTotal = montantTotal;
+        this.totalHt = totalHt; // NOUVEAU: initialiser totalHt
         this.utilisateur = utilisateur;
-        this.lignesFacture = new ArrayList<>(); // Les lignes seront chargées séparément par le DAO
+        this.lignesFacture = new ArrayList<>();
     }
 
     // --- Getters ---
@@ -40,7 +46,6 @@ public class Facture implements Serializable {
         return id;
     }
 
-    // NOUVEAU: Getter pour le numéro de facture
     public String getNumeroFacture() {
         return numeroFacture;
     }
@@ -51,6 +56,11 @@ public class Facture implements Serializable {
 
     public double getMontantTotal() {
         return montantTotal;
+    }
+
+    // NOUVEAU: Getter pour totalHt
+    public double getTotalHt() {
+        return totalHt;
     }
 
     public Utilisateur getUtilisateur() {
@@ -66,7 +76,6 @@ public class Facture implements Serializable {
         this.id = id;
     }
 
-    // NOUVEAU: Setter pour le numéro de facture
     public void setNumeroFacture(String numeroFacture) {
         this.numeroFacture = numeroFacture;
     }
@@ -77,6 +86,12 @@ public class Facture implements Serializable {
 
     public void setMontantTotal(double montantTotal) {
         this.montantTotal = montantTotal;
+        this.totalHt = montantTotal / (1 + TAUX_TVA); 
+    }
+
+    
+    public void setTotalHt(double totalHt) {
+        this.totalHt = totalHt;
     }
 
     public void setUtilisateur(Utilisateur utilisateur) {
@@ -85,7 +100,7 @@ public class Facture implements Serializable {
 
     public void setLignesFacture(List<LigneFacture> lignesFacture) {
         this.lignesFacture = lignesFacture;
-        calculerMontantTotal();
+        calculerMontantTotal(); 
     }
 
     // --- Méthodes métier ---
@@ -97,20 +112,23 @@ public class Facture implements Serializable {
         }
     }
 
+    // MODIFIÉ: Calcule montantTotal et totalHt
     public void calculerMontantTotal() {
         this.montantTotal = 0.0;
         for (LigneFacture ligne : lignesFacture) {
             this.montantTotal += ligne.getSousTotal();
         }
+        this.totalHt = this.montantTotal / (1 + TAUX_TVA);
     }
 
     @Override
     public String toString() {
         return "Facture{" +
                "id=" + id +
-               ", numeroFacture='" + numeroFacture + '\'' + // NOUVEAU: dans toString
+               ", numeroFacture='" + numeroFacture + '\'' +
                ", dateFacture=" + dateFacture.format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")) +
-               ", montantTotal=" + String.format("%.2f", montantTotal) +
+               ", montantTotalTTC=" + String.format("%.2f", montantTotal) +
+               ", totalHt=" + String.format("%.2f", totalHt) + // NOUVEAU: dans toString
                ", utilisateur=" + (utilisateur != null ? utilisateur.getNomUtilisateur() : "N/A") +
                ", nbLignes=" + lignesFacture.size() +
                '}';
