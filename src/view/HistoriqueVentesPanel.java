@@ -46,7 +46,7 @@ public class HistoriqueVentesPanel extends JPanel {
         setLayout(new BorderLayout(10, 10));
 
         // --- Panel de Filtrage (Nord) ---
-        JPanel filterPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 5));
+        JPanel filterPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 10));
 
         filterPanel.add(new JLabel("Date de début (JJ/MM/AAAA HH:MM):"));
         startDateField = new JTextField(15);

@@ -52,7 +52,7 @@ public class LigneFactureDAOImpl implements LigneFactureDAO {
     @Override
     public List<LigneFacture> getLignesFactureByFactureId(int idFacture) throws SQLException {
         List<LigneFacture> lignes = new ArrayList<>();
-        String sql = "SELECT id_ligne_facture, id_produit, _vendue, prix_unitaire_ht, sous_total FROM lignesfacture WHERE id_facture = ?";
+        String sql = "SELECT id_ligne_facture, id_produit, quantite_vendue, prix_unitaire_ht, sous_total FROM lignesfacture WHERE id_facture = ?";
         Connection conn = null;
         PreparedStatement pstmt = null;
         ResultSet rs = null;

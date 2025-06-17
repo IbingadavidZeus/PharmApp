@@ -2,16 +2,11 @@ package view;
 
 import model.Pharmacie;
 import model.Utilisateur;
-// Supprimer les imports de DAO et DatabaseManager si App.java les gère
-// import dao.UtilisateurDAO;
-// import dao.impl.UtilisateurDAOImpl;
-// import dao.DatabaseManager;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-// import java.sql.SQLException; // Pas toujours nécessaire ici si les exceptions sont gérées localement
 import java.util.Objects;
 
 // Interface pour notifier MainFrame des événements de connexion
@@ -37,8 +32,8 @@ public class MainFrame extends JFrame implements LoginListener, PharmacieDataLis
     private InfoPanel infoPanel;
     private VentePanel ventePanel;
     private GestionUtilisateursPanel gestionUtilisateursPanel;
-    private HistoriqueVentesPanel historiqueVentesPanel; // NOUVEAU: Instance du panneau HistoriqueVentes
-
+    private HistoriqueVentesPanel historiqueVentesPanel;
+    private ApprovisionnementPanel approvisionnementPanel;
     private Utilisateur currentUser;
     private String currentCardName = "Login";
 
@@ -75,7 +70,9 @@ public class MainFrame extends JFrame implements LoginListener, PharmacieDataLis
         infoPanel = new InfoPanel(pharmacie, this);
         ventePanel = new VentePanel(pharmacie, currentUser, this);
         gestionUtilisateursPanel = new GestionUtilisateursPanel(pharmacie, this); 
-        historiqueVentesPanel = new HistoriqueVentesPanel(pharmacie); // NOUVEAU: Initialisation du panneau HistoriqueVentes
+        historiqueVentesPanel = new HistoriqueVentesPanel(pharmacie);
+        // NOUVEAU: Initialisation du ApprovisionnementPanel
+        approvisionnementPanel = new ApprovisionnementPanel(pharmacie, this); 
 
         mainPanel.add(loginPanel, "Login");
         mainPanel.add(welcomePanel, "Welcome");
@@ -84,7 +81,8 @@ public class MainFrame extends JFrame implements LoginListener, PharmacieDataLis
         mainPanel.add(infoPanel, "Info");
         mainPanel.add(ventePanel, "Vente");
         mainPanel.add(gestionUtilisateursPanel, "GererUtilisateurs");
-        mainPanel.add(historiqueVentesPanel, "HistoriqueVentes"); // NOUVEAU: Ajout du panneau
+        mainPanel.add(historiqueVentesPanel, "HistoriqueVentes");
+        mainPanel.add(approvisionnementPanel, "Approvisionnement"); // NOUVEAU: Ajout du panneau
 
         add(mainPanel);
 
@@ -105,8 +103,10 @@ public class MainFrame extends JFrame implements LoginListener, PharmacieDataLis
             infoPanel.updatePharmacyInfo();
         } else if (Objects.equals(cardName, "GererUtilisateurs")) {
             gestionUtilisateursPanel.refreshUsersTable();
-        } else if (Objects.equals(cardName, "HistoriqueVentes")) { // NOUVEAU: Rafraîchir l'historique des ventes
+        } else if (Objects.equals(cardName, "HistoriqueVentes")) {
             historiqueVentesPanel.refreshFacturesTable();
+        } else if (Objects.equals(cardName, "Approvisionnement")) { // NOUVEAU: Rafraîchir le tableau d'approvisionnement
+            approvisionnementPanel.refreshProductTable();
         }
     }
 
@@ -143,6 +143,11 @@ public class MainFrame extends JFrame implements LoginListener, PharmacieDataLis
             JMenuItem gererUtilisateursItem = new JMenuItem("Gérer Utilisateurs");
             gererUtilisateursItem.addActionListener(_ -> showCard("GererUtilisateurs"));
             gestionMenu.add(gererUtilisateursItem);
+
+            // NOUVEAU: Ajout du menu Approvisionner Stock
+            JMenuItem approvisionnementItem = new JMenuItem("Approvisionner Stock");
+            approvisionnementItem.addActionListener(_ -> showCard("Approvisionnement"));
+            gestionMenu.add(approvisionnementItem);
         }
         
         JMenuItem ajouterProduitItem = new JMenuItem("Ajouter Produit");
@@ -159,7 +164,7 @@ public class MainFrame extends JFrame implements LoginListener, PharmacieDataLis
         venteMenu.add(effectuerVenteItem);
 
         JMenuItem historiqueVentesItem = new JMenuItem("Historique des Ventes");
-        historiqueVentesItem.addActionListener(_ -> showCard("HistoriqueVentes")); // NOUVEAU: Lier au panneau
+        historiqueVentesItem.addActionListener(_ -> showCard("HistoriqueVentes"));
         venteMenu.add(historiqueVentesItem);
 
         menuBar.add(gestionMenu);
@@ -199,11 +204,11 @@ public class MainFrame extends JFrame implements LoginListener, PharmacieDataLis
 
     @Override
     public void onPharmacieDataChanged() {
-        // Appelé lorsque des données de la pharmacie changent (e.g., ajout/suppression de produit/utilisateur, vente finalisée)
         stockPanel.remplirTable();
         infoPanel.updatePharmacyInfo();
         gestionUtilisateursPanel.refreshUsersTable();
         ventePanel.refreshProductSelectionTable();
-        historiqueVentesPanel.refreshFacturesTable(); // NOUVEAU: Rafraîchir l'historique des ventes
+        historiqueVentesPanel.refreshFacturesTable();
+        approvisionnementPanel.refreshProductTable(); // NOUVEAU: Rafraîchir le tableau d'approvisionnement
     }
 }

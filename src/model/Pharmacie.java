@@ -10,7 +10,9 @@ import dao.impl.ProduitDAOImpl;
 import dao.impl.UtilisateurDAOImpl;
 import java.io.*;
 import java.sql.SQLException;
-import java.time.LocalDateTime;
+import java.time.LocalDateTime; // Nécessaire pour getFacturesByDateRange
+// import java.security.MessageDigest; // Les imports pour le hachage ne sont plus nécessaires
+// import java.security.NoSuchAlgorithmException; // Les imports pour le hachage ne sont plus nécessaires
 import java.util.List;
 
 public class Pharmacie implements Serializable {
@@ -36,16 +38,14 @@ public class Pharmacie implements Serializable {
     private void initDAOs() {
         this.produitDAO = new ProduitDAOImpl();
         this.utilisateurDAO = new UtilisateurDAOImpl();
-        // LigneFactureDAO a besoin de ProduitDAO pour charger les produits associés aux lignes
         this.ligneFactureDAO = new LigneFactureDAOImpl(produitDAO);
-        // FactureDAO a besoin d'UtilisateurDAO et LigneFactureDAO pour charger les factures complètes
         this.factureDAO = new FactureDAOImpl(utilisateurDAO, ligneFactureDAO);
     }
 
     // Gère la désérialisation: réinitialise les transients DAOs
     private void readObject(ObjectInputStream ois) throws IOException, ClassNotFoundException {
-        ois.defaultReadObject(); // Désérialise les champs non-transients
-        initDAOs(); // Réinitialise les champs transients (DAOs) après la désérialisation
+        ois.defaultReadObject();
+        initDAOs();
     }
 
     // --- Getters et Setters pour les informations de la pharmacie ---
@@ -100,13 +100,39 @@ public class Pharmacie implements Serializable {
         return produitDAO.mettreAJourQuantite(reference, nouvelleQuantite);
     }
 
+    // NOUVEAU: Méthode pour approvisionner un produit
+    /**
+     * Approvisionne un produit en augmentant sa quantité en stock.
+     * @param reference La référence du produit à approvisionner.
+     * @param quantiteAAjouter La quantité à ajouter au stock existant.
+     * @return true si l'approvisionnement a réussi, false sinon.
+     * @throws SQLException Si une erreur de base de données survient.
+     * @throws IllegalArgumentException Si le produit n'est pas trouvé ou la quantité à ajouter est invalide.
+     */
+    public boolean approvisionnerProduit(String reference, int quantiteAAjouter) throws SQLException {
+        if (quantiteAAjouter <= 0) {
+            throw new IllegalArgumentException("La quantité à ajouter doit être positive.");
+        }
+
+        Produit produit = getProduitByReference(reference);
+        if (produit == null) {
+            throw new IllegalArgumentException("Produit avec la référence '" + reference + "' introuvable.");
+        }
+
+        int nouvelleQuantiteTotale = produit.getQuantite() + quantiteAAjouter;
+        // Utilisez la méthode existante pour mettre à jour la quantité.
+        // La validation de la nouvelleQuantiteTotale (par ex. max int) n'est pas gérée ici,
+        // mais peut être ajoutée si nécessaire.
+        return mettreAJourQuantiteProduit(reference, nouvelleQuantiteTotale);
+    }
+
+
     // --- Méthodes pour l'authentification et la gestion des utilisateurs (délèguent à UtilisateurDAO) ---
 
     // AVERTISSEMENT DE SÉCURITÉ: Cette méthode ne hache plus les mots de passe.
     // Les mots de passe seront traités en TEXTE CLAIR. CE N'EST PAS SÉCURISÉ.
     public Utilisateur authentifier(String nomUtilisateur, String motDePasse) {
         try {
-            // Passe le mot de passe en texte clair directement au DAO
             return utilisateurDAO.authentifierUtilisateur(nomUtilisateur, motDePasse);
         } catch (SQLException e) {
             System.err.println("Erreur SQL lors de l'authentification: " + e.getMessage());
@@ -118,7 +144,7 @@ public class Pharmacie implements Serializable {
     // AVERTISSEMENT DE SÉCURITÉ: Cette méthode ne hache plus les mots de passe.
     // Les mots de passe seront stockés en TEXTE CLAIR. CE N'EST PAS SÉCURISÉ.
     public boolean ajouterUtilisateur(Utilisateur utilisateur, String plainPassword) throws SQLException {
-        utilisateur.setMotDePasse(plainPassword); // Définit le mot de passe en texte clair
+        utilisateur.setMotDePasse(plainPassword);
         return utilisateurDAO.ajouterUtilisateur(utilisateur);
     }
 
@@ -126,12 +152,8 @@ public class Pharmacie implements Serializable {
     // Les mots de passe seront traités en TEXTE CLAIR. CE N'EST PAS SÉCURISÉ.
     public boolean mettreAJourUtilisateur(Utilisateur utilisateur, String newPlainPassword) throws SQLException {
         if (newPlainPassword != null && !newPlainPassword.trim().isEmpty()) {
-            utilisateur.setMotDePasse(newPlainPassword); // Définit le nouveau mot de passe en texte clair
+            utilisateur.setMotDePasse(newPlainPassword);
         } else {
-            // Si le champ de mot de passe est vide, on doit récupérer l'ancien mot de passe EN CLAIR
-            // depuis la base de données.
-            // Si la base de données contenait des mots de passe hachés avant cette modification,
-            // cette logique ne fonctionnera pas correctement sans réinitialiser ces mots de passe en clair.
             Utilisateur existingUser = utilisateurDAO.getUtilisateurById(utilisateur.getId());
             if (existingUser != null) {
                 utilisateur.setMotDePasse(existingUser.getMotDePasse());
@@ -159,7 +181,7 @@ public class Pharmacie implements Serializable {
         return factureDAO.ajouterFacture(facture);
     }
 
-    // NOUVEAU: Méthodes pour accéder aux factures via la classe Pharmacie
+    // Méthodes pour accéder aux factures via la classe Pharmacie
     public List<Facture> getAllFactures() throws SQLException {
         return factureDAO.getAllFactures();
     }
