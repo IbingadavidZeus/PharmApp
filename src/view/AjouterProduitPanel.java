@@ -6,238 +6,348 @@ import model.Medicament;
 import model.ProduitParaPharmacie;
 
 import javax.swing.*;
+import javax.swing.border.EmptyBorder;
+import javax.swing.border.TitledBorder;
+import javax.swing.text.NumberFormatter;
 import java.awt.*;
-import java.awt.event.ActionListener; // Importation pour ActionListener
+import java.sql.SQLException;
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
+import java.util.Objects;
 
 public class AjouterProduitPanel extends JPanel {
     private Pharmacie pharmacie;
-    private JTextField nomField;
+    private PharmacieDataListener dataListener;
+
+    // Champs de formulaire
     private JTextField referenceField;
-    private JTextArea descriptionArea; // Utilisation de JTextArea pour la description (peut être longue)
-    private JTextField prixHtField;
-    private JTextField quantiteField;
-    private JComboBox<String> typeProduitComboBox; // Pour choisir Medicament ou Parapharmacie
+    private JTextField nomField;
+    private JTextArea descriptionArea;
+    private JFormattedTextField prixHtField; // Utilisation de JFormattedTextField
+    private JFormattedTextField quantiteField; // Utilisation de JFormattedTextField
+    private JComboBox<String> typeProduitComboBox;
 
-    // Champs spécifiques aux médicaments
+    // Panneaux pour les champs spécifiques au type de produit (Medicament ou Parapharmacie)
+    private JPanel typeSpecificPanel; // Conteneur avec CardLayout
+    private JPanel medicamentPanel;
     private JCheckBox generiqueCheckBox;
-    private JCheckBox ordonnanceCheckBox;
+    private JCheckBox surOrdonnanceCheckBox;
+    private JPanel parapharmaciePanel;
+    private JTextField categorieParapharmacieField;
 
-    // Champs spécifiques à la parapharmacie
-    private JTextField categorieParaField;
-
-    private JPanel specificFieldsPanel; // Panel pour changer dynamiquement les champs
-
+    // Boutons
     private JButton ajouterButton;
+    private JButton resetButton; // Nouveau bouton de réinitialisation
+
+    // Label pour les messages
     private JLabel messageLabel;
-    private PharmacieDataListener dataListener; // Pour notifier la MainFrame des changements
 
-    public AjouterProduitPanel(Pharmacie pharmacie, PharmacieDataListener listener) {
+    public AjouterProduitPanel(Pharmacie pharmacie, PharmacieDataListener dataListener) {
         this.pharmacie = pharmacie;
-        this.dataListener = listener; // Initialisation du listener
-        setLayout(new BorderLayout(10, 10)); // Utilisation d'un BorderLayout pour une meilleure structure
+        this.dataListener = dataListener;
+        initUI();
+    }
 
-        // Panel principal pour le formulaire
+    private void initUI() {
+        setLayout(new BorderLayout(20, 20)); // Espace entre les sections principales
+        setBorder(new EmptyBorder(20, 20, 20, 20)); // Marge interne du panneau
+
+        // --- Panel Principal du Formulaire (Centre) ---
         JPanel formPanel = new JPanel(new GridBagLayout());
+        formPanel.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1), // Bordure fine
+            BorderFactory.createEmptyBorder(15, 15, 15, 15) // Padding interne
+        ));
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(5, 5, 5, 5); // Espacement entre les composants
+        gbc.insets = new Insets(8, 8, 8, 8); // Espacement autour de chaque composant
         gbc.fill = GridBagConstraints.HORIZONTAL; // Les champs s'étendent horizontalement
 
+        // --- Section Détails Généraux du Produit ---
+        JPanel generalDetailsPanel = new JPanel(new GridBagLayout());
+        generalDetailsPanel.setBorder(BorderFactory.createTitledBorder(
+            BorderFactory.createLineBorder(new Color(100, 149, 237)), // Bordure bleue claire
+            "Détails Généraux du Produit", // Titre de la section
+            TitledBorder.LEFT, TitledBorder.TOP, // Position du titre
+            new Font("Arial", Font.BOLD, 14), new Color(70, 130, 180) // Style du titre
+        ));
+        GridBagConstraints gbcGen = new GridBagConstraints();
+        gbcGen.insets = new Insets(5, 5, 5, 5);
+        gbcGen.fill = GridBagConstraints.HORIZONTAL;
+
         int row = 0;
-
-        // Nom du produit
-        gbc.gridx = 0; gbc.gridy = row; gbc.anchor = GridBagConstraints.EAST;
-        formPanel.add(new JLabel("Nom:"), gbc);
-        gbc.gridx = 1; gbc.gridy = row; gbc.anchor = GridBagConstraints.WEST;
-        nomField = new JTextField(20);
-        formPanel.add(nomField, gbc);
-        row++;
-
-        // Référence
-        gbc.gridx = 0; gbc.gridy = row; gbc.anchor = GridBagConstraints.EAST;
-        formPanel.add(new JLabel("Référence:"), gbc);
-        gbc.gridx = 1; gbc.gridy = row; gbc.anchor = GridBagConstraints.WEST;
+        gbcGen.gridx = 0; gbcGen.gridy = row; gbcGen.anchor = GridBagConstraints.EAST;
+        generalDetailsPanel.add(new JLabel("Référence:"), gbcGen);
+        gbcGen.gridx = 1; gbcGen.gridy = row; gbcGen.weightx = 1.0; // Poids pour que le champ s'étende
         referenceField = new JTextField(20);
-        formPanel.add(referenceField, gbc);
+        generalDetailsPanel.add(referenceField, gbcGen);
         row++;
 
-        // NOUVEAU: Description du produit
-        gbc.gridx = 0; gbc.gridy = row; gbc.anchor = GridBagConstraints.NORTHEAST; // Aligner en haut à droite pour JTextArea
-        formPanel.add(new JLabel("Description:"), gbc);
-        gbc.gridx = 1; gbc.gridy = row; gbc.anchor = GridBagConstraints.WEST;
-        descriptionArea = new JTextArea(3, 20); // 3 lignes, 20 colonnes
-        descriptionArea.setLineWrap(true); // Permet le retour à la ligne automatique
-        descriptionArea.setWrapStyleWord(true); // Coupe les lignes aux mots
-        JScrollPane scrollPane = new JScrollPane(descriptionArea); // Ajoute une barre de défilement
-        formPanel.add(scrollPane, gbc);
+        gbcGen.gridx = 0; gbcGen.gridy = row; gbcGen.anchor = GridBagConstraints.EAST;
+        generalDetailsPanel.add(new JLabel("Nom:"), gbcGen);
+        gbcGen.gridx = 1; gbcGen.gridy = row; gbcGen.weightx = 1.0;
+        nomField = new JTextField(20);
+        generalDetailsPanel.add(nomField, gbcGen);
         row++;
 
-        // Prix HT
-        gbc.gridx = 0; gbc.gridy = row; gbc.anchor = GridBagConstraints.EAST;
-        formPanel.add(new JLabel("Prix HT:"), gbc);
-        gbc.gridx = 1; gbc.gridy = row; gbc.anchor = GridBagConstraints.WEST;
-        prixHtField = new JTextField(20);
-        formPanel.add(prixHtField, gbc);
+        gbcGen.gridx = 0; gbcGen.gridy = row; gbcGen.anchor = GridBagConstraints.NORTHEAST; // Aligner en haut pour JTextArea
+        generalDetailsPanel.add(new JLabel("Description:"), gbcGen);
+        gbcGen.gridx = 1; gbcGen.gridy = row; gbcGen.weightx = 1.0; gbcGen.weighty = 0.5; gbcGen.fill = GridBagConstraints.BOTH; // Permettre au JTextArea de s'étendre
+        descriptionArea = new JTextArea(4, 20); // 4 lignes visibles
+        descriptionArea.setLineWrap(true);
+        descriptionArea.setWrapStyleWord(true);
+        JScrollPane scrollPane = new JScrollPane(descriptionArea);
+        generalDetailsPanel.add(scrollPane, gbcGen);
         row++;
 
-        // Quantité
-        gbc.gridx = 0; gbc.gridy = row; gbc.anchor = GridBagConstraints.EAST;
-        formPanel.add(new JLabel("Quantité:"), gbc);
-        gbc.gridx = 1; gbc.gridy = row; gbc.anchor = GridBagConstraints.WEST;
-        quantiteField = new JTextField(20);
-        formPanel.add(quantiteField, gbc);
+        // Formatter pour les nombres (prix et quantité)
+        NumberFormat priceFormat = new DecimalFormat("#0.00");
+        NumberFormatter priceFormatter = new NumberFormatter(priceFormat);
+        priceFormatter.setValueClass(Double.class);
+        priceFormatter.setAllowsInvalid(false);
+        priceFormatter.setMinimum(0.0);
+
+        NumberFormat quantityFormat = NumberFormat.getIntegerInstance();
+        NumberFormatter quantityFormatter = new NumberFormatter(quantityFormat);
+        quantityFormatter.setValueClass(Integer.class);
+        quantityFormatter.setAllowsInvalid(false);
+        quantityFormatter.setMinimum(0);
+
+        gbcGen.gridx = 0; gbcGen.gridy = row; gbcGen.anchor = GridBagConstraints.EAST;
+        generalDetailsPanel.add(new JLabel("Prix HT:"), gbcGen);
+        gbcGen.gridx = 1; gbcGen.gridy = row; gbcGen.weightx = 1.0; gbcGen.weighty = 0.0; gbcGen.fill = GridBagConstraints.HORIZONTAL;
+        prixHtField = new JFormattedTextField(priceFormatter);
+        prixHtField.setValue(0.00); // Valeur par défaut
+        generalDetailsPanel.add(prixHtField, gbcGen);
         row++;
 
-        // Type de produit (ComboBox)
-        gbc.gridx = 0; gbc.gridy = row; gbc.anchor = GridBagConstraints.EAST;
-        formPanel.add(new JLabel("Type de produit:"), gbc);
-        gbc.gridx = 1; gbc.gridy = row; gbc.anchor = GridBagConstraints.WEST;
-        typeProduitComboBox = new JComboBox<>(new String[]{"Medicament", "Parapharmacie"});
-        typeProduitComboBox.addActionListener(_ -> updateSpecificFieldsPanel());
-        formPanel.add(typeProduitComboBox, gbc);
+        gbcGen.gridx = 0; gbcGen.gridy = row; gbcGen.anchor = GridBagConstraints.EAST;
+        generalDetailsPanel.add(new JLabel("Quantité (Stock):"), gbcGen);
+        gbcGen.gridx = 1; gbcGen.gridy = row; gbcGen.weightx = 1.0;
+        quantiteField = new JFormattedTextField(quantityFormatter);
+        quantiteField.setValue(0); // Valeur par défaut
+        generalDetailsPanel.add(quantiteField, gbcGen);
         row++;
 
-        // Panel pour les champs spécifiques (dynamique)
-        specificFieldsPanel = new JPanel(new GridBagLayout()); // Utilise un GridBagLayout interne
-        gbc.gridx = 0; gbc.gridy = row; gbc.gridwidth = 2; // Ce panel prend 2 colonnes
-        formPanel.add(specificFieldsPanel, gbc);
-        row++;
+        // Ajouter le panneau des détails généraux au panneau principal du formulaire
+        gbc.gridx = 0; gbc.gridy = 0; gbc.gridwidth = 2; // Prend 2 colonnes
+        gbc.weightx = 1.0; gbc.weighty = 0.6; // Poids pour s'étendre verticalement
+        gbc.fill = GridBagConstraints.BOTH;
+        formPanel.add(generalDetailsPanel, gbc);
 
-        // Initialisation des champs spécifiques (cachés au début)
-        generiqueCheckBox = new JCheckBox("Générique");
-        ordonnanceCheckBox = new JCheckBox("Sur ordonnance");
-        categorieParaField = new JTextField(20);
+        // --- Section Type de Produit et Spécificités ---
+        JPanel typeSelectionPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        typeSelectionPanel.setBorder(new EmptyBorder(10, 0, 10, 0)); // Padding
+        typeSelectionPanel.add(new JLabel("Type de Produit:"));
+        typeProduitComboBox = new JComboBox<>(new String[]{"MEDICAMENT", "PARAPHARMACIE"}); // Noms en majuscules pour les cartes
+        typeProduitComboBox.setPreferredSize(new Dimension(200, 30)); // Taille préférée pour la combobox
+        typeProduitComboBox.addActionListener(_ -> updateTypeSpecificFields()); // Listener pour changer les champs dynamiques
+        typeSelectionPanel.add(typeProduitComboBox);
 
-        // Appel initial pour afficher les champs du médicament par défaut
-        updateSpecificFieldsPanel();
+        gbc.gridy = 1; // Sous la section générale
+        gbc.weighty = 0.0; // Ne s'étire pas verticalement
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        formPanel.add(typeSelectionPanel, gbc);
 
-        // Bouton Ajouter
-        gbc.gridx = 0; gbc.gridy = row; gbc.gridwidth = 2; gbc.anchor = GridBagConstraints.CENTER;
+        // --- Panneau pour les champs spécifiques au type (avec CardLayout) ---
+        typeSpecificPanel = new JPanel(new CardLayout());
+        typeSpecificPanel.setBorder(BorderFactory.createTitledBorder(
+            BorderFactory.createLineBorder(new Color(100, 149, 237)), "Spécificités du Type", TitledBorder.LEFT, TitledBorder.TOP,
+            new Font("Arial", Font.BOLD, 14), new Color(70, 130, 180)
+        ));
+
+        // Panneau pour les champs Médicament
+        medicamentPanel = new JPanel(new GridBagLayout());
+        GridBagConstraints gbcMed = new GridBagConstraints();
+        gbcMed.insets = new Insets(5, 5, 5, 5);
+        gbcMed.anchor = GridBagConstraints.WEST; // Aligner les checkbox à gauche
+        gbcMed.gridx = 0; gbcMed.gridy = 0;
+        generiqueCheckBox = new JCheckBox("Est Générique");
+        medicamentPanel.add(generiqueCheckBox, gbcMed);
+        gbcMed.gridx = 0; gbcMed.gridy = 1;
+        surOrdonnanceCheckBox = new JCheckBox("Est sur Ordonnance");
+        medicamentPanel.add(surOrdonnanceCheckBox, gbcMed);
+        typeSpecificPanel.add(medicamentPanel, "MEDICAMENT"); // Nom de la carte
+
+        // Panneau pour les champs Parapharmacie
+        parapharmaciePanel = new JPanel(new GridBagLayout());
+        GridBagConstraints gbcPara = new GridBagConstraints();
+        gbcPara.insets = new Insets(5, 5, 5, 5);
+        gbcPara.fill = GridBagConstraints.HORIZONTAL;
+        gbcPara.gridx = 0; gbcPara.gridy = 0; gbcPara.anchor = GridBagConstraints.EAST;
+        parapharmaciePanel.add(new JLabel("Catégorie Parapharmacie:"), gbcPara);
+        gbcPara.gridx = 1; gbcPara.gridy = 0; gbcPara.weightx = 1.0; gbcPara.anchor = GridBagConstraints.WEST;
+        categorieParapharmacieField = new JTextField(20);
+        parapharmaciePanel.add(categorieParapharmacieField, gbcPara);
+        typeSpecificPanel.add(parapharmaciePanel, "PARAPHARMACIE"); // Nom de la carte
+
+        gbc.gridy = 2; // Sous le sélecteur de type
+        gbc.weighty = 0.4; // Permettre au panneau de s'étendre verticalement
+        gbc.fill = GridBagConstraints.BOTH;
+        formPanel.add(typeSpecificPanel, gbc);
+
+        add(formPanel, BorderLayout.CENTER);
+
+        // --- Panel Boutons et Message (Sud) ---
+        JPanel bottomPanel = new JPanel(new BorderLayout());
+        bottomPanel.setBorder(new EmptyBorder(10, 0, 0, 0)); // Padding en haut
+
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 5)); // Espace entre les boutons
         ajouterButton = new JButton("Ajouter Produit");
-        ajouterButton.addActionListener(_ -> ajouterProduit());
-        formPanel.add(ajouterButton, gbc);
-        row++;
+        ajouterButton.setFont(new Font("Arial", Font.BOLD, 16));
+        ajouterButton.setBackground(new Color(60, 179, 113)); // Vert Foncée
+        ajouterButton.setForeground(Color.WHITE);
+        ajouterButton.addActionListener(_ -> addProduct());
+        buttonPanel.add(ajouterButton);
 
-        // Message Label
-        gbc.gridx = 0; gbc.gridy = row; gbc.gridwidth = 2; gbc.anchor = GridBagConstraints.CENTER;
-        messageLabel = new JLabel(" ");
-        messageLabel.setForeground(Color.BLUE);
-        formPanel.add(messageLabel, gbc);
+        resetButton = new JButton("Réinitialiser");
+        resetButton.setFont(new Font("Arial", Font.PLAIN, 14));
+        resetButton.setBackground(new Color(255, 165, 0)); // Orange
+        resetButton.setForeground(Color.WHITE);
+        resetButton.addActionListener(_ -> resetFields());
+        buttonPanel.add(resetButton);
 
-        add(formPanel, BorderLayout.CENTER); // Ajoute le formulaire au centre du panel principal
-        
-        // Ajouter une bordure au panel pour l'esthétique
-        setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        bottomPanel.add(buttonPanel, BorderLayout.NORTH);
+
+        messageLabel = new JLabel(" ", SwingConstants.CENTER); // Centrer le texte
+        messageLabel.setFont(new Font("Arial", Font.PLAIN, 12));
+        messageLabel.setForeground(Color.BLACK); // Couleur par défaut (noir)
+        bottomPanel.add(messageLabel, BorderLayout.SOUTH);
+
+        add(bottomPanel, BorderLayout.SOUTH);
+
+        // Initialisation de l'affichage des champs spécifiques au démarrage
+        updateTypeSpecificFields();
     }
 
-    private void updateSpecificFieldsPanel() {
-        specificFieldsPanel.removeAll(); // Supprime tous les anciens composants
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(5, 5, 5, 5);
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.anchor = GridBagConstraints.WEST; // Alignement des composants spécifiques
-
+    /**
+     * Met à jour l'affichage des champs spécifiques au type de produit.
+     * Utilise CardLayout pour basculer entre les panneaux "MEDICAMENT" et "PARAPHARMACIE".
+     */
+    private void updateTypeSpecificFields() {
         String selectedType = (String) typeProduitComboBox.getSelectedItem();
-        int innerRow = 0;
+        CardLayout cl = (CardLayout) (typeSpecificPanel.getLayout());
+        cl.show(typeSpecificPanel, Objects.requireNonNull(selectedType)); // Utilise Objects.requireNonNull pour éviter NullPointerException
 
-        if ("Medicament".equals(selectedType)) {
-            gbc.gridx = 0; gbc.gridy = innerRow++;
-            specificFieldsPanel.add(generiqueCheckBox, gbc);
-            gbc.gridx = 0; gbc.gridy = innerRow++;
-            specificFieldsPanel.add(ordonnanceCheckBox, gbc);
-        } else if ("Parapharmacie".equals(selectedType)) {
-            gbc.gridx = 0; gbc.gridy = innerRow; gbc.anchor = GridBagConstraints.EAST;
-            specificFieldsPanel.add(new JLabel("Catégorie Parapharmacie:"), gbc); // Label plus explicite
-            gbc.gridx = 1; gbc.gridy = innerRow; gbc.anchor = GridBagConstraints.WEST;
-            specificFieldsPanel.add(categorieParaField, gbc);
+        // Réinitialiser les champs des panneaux qui ne sont PAS affichés pour éviter les valeurs résiduelles
+        if ("MEDICAMENT".equals(selectedType)) {
+            categorieParapharmacieField.setText("");
+        } else if ("PARAPHARMACIE".equals(selectedType)) {
+            generiqueCheckBox.setSelected(false);
+            surOrdonnanceCheckBox.setSelected(false);
+        }
+    }
+
+    /**
+     * Ajoute un nouveau produit à la base de données.
+     * Effectue des validations et gère la création du Produit/Medicament/ProduitParaPharmacie.
+     */
+    private void addProduct() {
+        String reference = referenceField.getText().trim();
+        String nom = nomField.getText().trim();
+        String description = descriptionArea.getText().trim();
+        Double prixHt;
+        Integer quantite;
+
+        // Validation des formats numériques
+        try {
+            prixHt = ((Number) prixHtField.getValue()).doubleValue();
+            quantite = ((Number) quantiteField.getValue()).intValue();
+        } catch (ClassCastException | NullPointerException e) {
+            setMessage("Veuillez entrer des valeurs numériques valides pour le prix et la quantité.", Color.RED);
+            return;
         }
 
-        specificFieldsPanel.revalidate(); // Revalider le layout pour prendre en compte les changements
-        specificFieldsPanel.repaint(); // Redessiner le panel pour afficher les nouveaux composants
-    }
+        // Validation des champs obligatoires et des valeurs
+        if (reference.isEmpty() || nom.isEmpty() || prixHt <= 0 || quantite < 0) {
+            setMessage("Veuillez remplir tous les champs obligatoires (Référence, Nom, Prix HT > 0) et assurez-vous que la quantité est positive.", Color.RED);
+            return;
+        }
+        
+        if (description.isEmpty()) { // La description est maintenant obligatoire
+            setMessage("Veuillez entrer une description pour le produit.", Color.RED);
+            return;
+        }
 
-    private void ajouterProduit() {
+
         try {
-            // Récupération des champs communs à tous les produits
-            String nom = nomField.getText().trim();
-            String reference = referenceField.getText().trim();
-            String description = descriptionArea.getText().trim(); // Récupération de la description
-            double prixHt = Double.parseDouble(prixHtField.getText().trim());
-            int quantite = Integer.parseInt(quantiteField.getText().trim());
-            String typeProduit = (String) typeProduitComboBox.getSelectedItem();
-
-            // Validation de base
-            if (nom.isEmpty() || reference.isEmpty() || description.isEmpty()) {
-                messageLabel.setText("Erreur: Tous les champs obligatoires (Nom, Référence, Description) doivent être remplis.");
-                messageLabel.setForeground(Color.RED);
-                return;
-            }
-            if (prixHt < 0) {
-                messageLabel.setText("Erreur: Le prix HT ne peut pas être négatif.");
-                messageLabel.setForeground(Color.RED);
-                return;
-            }
-            if (quantite < 0) {
-                messageLabel.setText("Erreur: La quantité ne peut pas être négative.");
-                messageLabel.setForeground(Color.RED);
+            // Vérifier si la référence existe déjà avant d'essayer d'ajouter
+            if (pharmacie.getProduitByReference(reference) != null) {
+                setMessage("Erreur: La référence '" + reference + "' existe déjà. Veuillez utiliser une référence unique.", Color.RED);
                 return;
             }
 
-            Produit nouveauProduit = null;
+            Produit produit;
+            String selectedType = (String) typeProduitComboBox.getSelectedItem();
 
-            // Création de l'objet Produit selon le type sélectionné
-            if ("Medicament".equals(typeProduit)) {
+            if ("MEDICAMENT".equals(selectedType)) {
                 boolean generique = generiqueCheckBox.isSelected();
-                boolean ordonnance = ordonnanceCheckBox.isSelected();
-                // Utilise le constructeur Medicament mis à jour avec la description
-                nouveauProduit = new Medicament(nom, reference, description, prixHt, quantite, generique, ordonnance);
-            } else if ("Parapharmacie".equals(typeProduit)) {
-                String categorie = categorieParaField.getText().trim();
+                boolean surOrdonnance = surOrdonnanceCheckBox.isSelected();
+                // Assurez-vous que le constructeur de Medicament correspond : (nom, reference, description, prixHt, quantite, generique, surOrdonnance)
+                produit = new Medicament(nom, reference, description, prixHt, quantite, generique, surOrdonnance);
+            } else if ("PARAPHARMACIE".equals(selectedType)) {
+                String categorie = categorieParapharmacieField.getText().trim();
                 if (categorie.isEmpty()) {
-                    messageLabel.setText("Erreur: La catégorie pour la parapharmacie est obligatoire.");
-                    messageLabel.setForeground(Color.RED);
+                    setMessage("Erreur: La catégorie pour la parapharmacie est obligatoire.", Color.RED);
                     return;
                 }
-                // Utilise le constructeur ProduitParaPharmacie mis à jour avec la description
-                nouveauProduit = new ProduitParaPharmacie(nom, reference, description, prixHt, quantite, categorie);
+                // Assurez-vous que le constructeur de ProduitParaPharmacie correspond : (nom, reference, description, prixHt, quantite, categorie)
+                produit = new ProduitParaPharmacie(nom, reference, description, prixHt, quantite, categorie);
+            } else {
+                setMessage("Type de produit inconnu ou non sélectionné.", Color.RED);
+                return;
             }
 
-            if (nouveauProduit != null) {
-                // Utilise la nouvelle méthode ajouterProduit de Pharmacie qui utilise le DAO
-                boolean succes = pharmacie.ajouterProduit(nouveauProduit);
-                if (succes) {
-                    messageLabel.setText("Produit ajouté avec succès à la base de données !");
-                    messageLabel.setForeground(Color.GREEN);
-                    // Effacer les champs après l'ajout
-                    nomField.setText("");
-                    referenceField.setText("");
-                    descriptionArea.setText(""); // Efface la description
-                    prixHtField.setText("");
-                    quantiteField.setText("");
-                    generiqueCheckBox.setSelected(false);
-                    ordonnanceCheckBox.setSelected(false);
-                    categorieParaField.setText("");
-                    typeProduitComboBox.setSelectedIndex(0); // Réinitialise le combo box à "Medicament"
+            boolean success = pharmacie.ajouterProduit(produit);
 
-                    // Notifier le listener que les données ont changé (pour rafraîchir d'autres vues)
-                    if (dataListener != null) {
-                        dataListener.onPharmacieDataChanged();
-                    }
-                } else {
-                    messageLabel.setText("Erreur: Impossible d'ajouter le produit. Une référence similaire existe peut-être déjà ou un problème est survenu.");
-                    messageLabel.setForeground(Color.RED);
+            if (success) {
+                setMessage("Produit '" + nom + "' ajouté avec succès !", Color.GREEN);
+                resetFields(); // Réinitialise tous les champs
+                if (dataListener != null) {
+                    dataListener.onPharmacieDataChanged(); // Notifier MainFrame pour rafraîchir d'autres panels
                 }
             } else {
-                messageLabel.setText("Erreur: Type de produit non valide ou non spécifié.");
-                messageLabel.setForeground(Color.RED);
+                setMessage("Échec de l'ajout du produit. Veuillez réessayer. La référence existe peut-être déjà.", Color.RED);
             }
-
-        } catch (NumberFormatException e) {
-            messageLabel.setText("Erreur de saisie: Veuillez entrer des nombres valides pour le prix HT et la quantité.");
-            messageLabel.setForeground(Color.RED);
-        } catch (Exception e) { // Capture toutes les exceptions pour un feedback général
-            messageLabel.setText("Une erreur inattendue est survenue: " + e.getMessage());
-            messageLabel.setForeground(Color.RED);
-            e.printStackTrace(); // Affiche la pile d'appels pour le débogage
+        } catch (SQLException e) {
+            // Erreurs SQL spécifiques, comme les doublons de référence gérés par la BD
+            if (e.getMessage() != null && e.getMessage().contains("Duplicate entry")) {
+                setMessage("Erreur: La référence '" + reference + "' existe déjà dans la base de données.", Color.RED);
+            } else {
+                setMessage("Erreur de base de données lors de l'ajout: " + e.getMessage(), Color.RED);
+            }
+            e.printStackTrace();
+        } catch (IllegalArgumentException e) {
+            setMessage("Erreur de validation: " + e.getMessage(), Color.RED);
+            e.printStackTrace();
+        } catch (Exception e) {
+            setMessage("Une erreur inattendue est survenue lors de l'ajout du produit: " + e.getMessage(), Color.RED);
+            e.printStackTrace();
         }
+    }
+
+    /**
+     * Réinitialise tous les champs du formulaire à leurs valeurs par défaut.
+     */
+    private void resetFields() {
+        referenceField.setText("");
+        nomField.setText("");
+        descriptionArea.setText("");
+        prixHtField.setValue(0.00); // Réinitialise la valeur numérique
+        quantiteField.setValue(0);   // Réinitialise la valeur numérique
+        typeProduitComboBox.setSelectedIndex(0); // Revient à "MEDICAMENT"
+        generiqueCheckBox.setSelected(false);
+        surOrdonnanceCheckBox.setSelected(false);
+        categorieParapharmacieField.setText("");
+        setMessage(" ", Color.BLACK); // Efface le message
+    }
+
+    /**
+     * Affiche un message à l'utilisateur avec la couleur spécifiée.
+     * @param msg Le message à afficher.
+     * @param color La couleur du texte du message.
+     */
+    private void setMessage(String msg, Color color) {
+        messageLabel.setText(msg);
+        messageLabel.setForeground(color);
     }
 }
