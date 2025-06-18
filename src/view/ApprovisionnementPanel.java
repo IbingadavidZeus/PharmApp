@@ -23,7 +23,7 @@ public class ApprovisionnementPanel extends JPanel {
     private JTextField quantityToAddField;
     private JButton addSupplyButton;
 
-    private JLabel currentStockLabel; // Label pour afficher le stock actuel du produit sélectionné
+    private JLabel currentStockLabel; 
     private JLabel messageLabel; 
 
     // Colonnes pour le tableau de sélection de produits
@@ -58,28 +58,24 @@ public class ApprovisionnementPanel extends JPanel {
         productTablePanel.add(new JScrollPane(productSelectionTable), BorderLayout.CENTER);
         add(productTablePanel, BorderLayout.CENTER);
 
-        // Ajout du ListSelectionListener au tableau
         productSelectionTable.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
             @Override
             public void valueChanged(ListSelectionEvent e) {
                 if (!e.getValueIsAdjusting() && productSelectionTable.getSelectedRow() != -1) {
                     displaySelectedProductStock();
                 } else if (productSelectionTable.getSelectedRow() == -1) {
-                    // Si aucune ligne n'est sélectionnée (ex: après un ajout réussi ou un clear)
                     currentStockLabel.setText("N/A");
                     currentStockLabel.setForeground(Color.GRAY);
                 }
             }
         });
 
-        // --- Panel Sud: Quantité à ajouter et Bouton d'approvisionnement ---
         JPanel bottomPanel = new JPanel(new GridBagLayout());
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(5, 5, 5, 5);
         gbc.fill = GridBagConstraints.HORIZONTAL;
 
         int row = 0;
-        // Affichage du stock actuel
         gbc.gridx = 0; gbc.gridy = row; gbc.anchor = GridBagConstraints.EAST;
         bottomPanel.add(new JLabel("Stock actuel :"), gbc);
         gbc.gridx = 1; gbc.gridy = row; gbc.anchor = GridBagConstraints.WEST;
@@ -113,8 +109,6 @@ public class ApprovisionnementPanel extends JPanel {
         row++;
 
         add(bottomPanel, BorderLayout.SOUTH);
-
-        // Remplir le tableau des produits au démarrage
         refreshProductTable();
     }
 
@@ -231,9 +225,7 @@ public class ApprovisionnementPanel extends JPanel {
     private void displaySelectedProductStock() {
         int selectedRow = productSelectionTable.getSelectedRow();
         if (selectedRow != -1) {
-            // Le stock actuel est dans la 4ème colonne (index 3) du modèle du tableau
             int stockQuantity = (int) productSelectionTableModel.getValueAt(selectedRow, 3);
-            // Le prix unitaire TTC est dans la 3ème colonne (index 2)
             String priceTTCString = (String) productSelectionTableModel.getValueAt(selectedRow, 2);
             double priceTTC = Double.parseDouble(priceTTCString.replace(",", ".")); // Gérer le format de la virgule
 

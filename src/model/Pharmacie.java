@@ -111,8 +111,7 @@ public class Pharmacie implements Serializable {
         int nouvelleQuantiteTotale = produit.getQuantite() + quantiteAAjouter;
         return mettreAJourQuantiteProduit(reference, nouvelleQuantiteTotale);
     }
-
-    // NOUVEAU: Méthode pour calculer la valeur financière totale du stock
+    
     public double calculerValeurTotaleStock() throws SQLException {
         double valeurTotale = 0.0;
         List<Produit> allProducts = produitDAO.getAllProduits();
@@ -121,12 +120,6 @@ public class Pharmacie implements Serializable {
         }
         return valeurTotale;
     }
-
-
-    // --- Méthodes pour l'authentification et la gestion des utilisateurs (délèguent à UtilisateurDAO) ---
-
-    // AVERTISSEMENT DE SÉCURITÉ: Cette méthode ne hache plus les mots de passe.
-    // Les mots de passe seront traités en TEXTE CLAIR. CE N'EST PAS SÉCURISÉ.
     public Utilisateur authentifier(String nomUtilisateur, String motDePasse) {
         try {
             return utilisateurDAO.authentifierUtilisateur(nomUtilisateur, motDePasse);
@@ -136,16 +129,10 @@ public class Pharmacie implements Serializable {
             return null;
         }
     }
-
-    // AVERTISSEMENT DE SÉCURITÉ: Cette méthode ne hache plus les mots de passe.
-    // Les mots de passe seront stockés en TEXTE CLAIR. CE N'EST PAS SÉCURISÉ.
     public boolean ajouterUtilisateur(Utilisateur utilisateur, String plainPassword) throws SQLException {
         utilisateur.setMotDePasse(plainPassword);
         return utilisateurDAO.ajouterUtilisateur(utilisateur);
     }
-
-    // AVERTISSEMENT DE SÉCURITÉ: Cette méthode ne hache plus les mots de passe.
-    // Les mots de passe seront traités en TEXTE CLAIR. CE N'EST PAS SÉCURISÉ.
     public boolean mettreAJourUtilisateur(Utilisateur utilisateur, String newPlainPassword) throws SQLException {
         if (newPlainPassword != null && !newPlainPassword.trim().isEmpty()) {
             utilisateur.setMotDePasse(newPlainPassword);
@@ -171,13 +158,9 @@ public class Pharmacie implements Serializable {
     public Utilisateur getUtilisateurById(int id) throws SQLException {
         return utilisateurDAO.getUtilisateurById(id);
     }
-
-    // --- Méthodes pour la finalisation des ventes (délèguent à FactureDAO) ---
     public boolean finaliserVente(Facture facture) throws SQLException {
         return factureDAO.ajouterFacture(facture);
     }
-
-    // Méthodes pour accéder aux factures via la classe Pharmacie
     public List<Facture> getAllFactures() throws SQLException {
         return factureDAO.getAllFactures();
     }
@@ -193,8 +176,6 @@ public class Pharmacie implements Serializable {
     public Facture getFactureById(int id) throws SQLException {
         return factureDAO.getFactureById(id);
     }
-
-    // --- Méthodes de sauvegarde et chargement (pour les propriétés de la Pharmacie) ---
     public void sauvegarderDansFichier(String nomFichier) {
         try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(nomFichier))) {
             oos.writeObject(this);

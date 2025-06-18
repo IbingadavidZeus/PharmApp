@@ -8,7 +8,6 @@ import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.util.Objects;
-// Import pour Toolkit nécessaire pour charger l'image
 import java.awt.Toolkit;
 
 // Interface pour notifier MainFrame des événements de connexion

@@ -17,12 +17,9 @@ public class StockPanel extends JPanel {
     private DefaultTableModel tableModel;
     private PharmacieDataListener dataListener;
 
-    private JLabel totalStockValueLabel; // NOUVEAU: Label pour la valeur totale du stock
-
-    // Colonnes pour le tableau, incluant la description
+    private JLabel totalStockValueLabel;
+    
     private final String[] columnNames = {"ID", "Référence", "Nom", "Description", "Type", "Prix HT", "Quantité", "Prix TTC", "Générique", "Ordonnance", "Catégorie Para."};
-
-    // Constructeur mis à jour pour accepter le PharmacieDataListener
     public StockPanel(Pharmacie pharmacie, PharmacieDataListener listener) {
         this.pharmacie = pharmacie;
         this.dataListener = listener;
@@ -45,9 +42,7 @@ public class StockPanel extends JPanel {
         add(scrollPane, BorderLayout.CENTER);
 
         // --- Boutons et panel de contrôle ---
-        JPanel controlPanel = new JPanel(new BorderLayout()); // Utiliser BorderLayout pour aligner le label et les boutons
-        
-        // Panel pour les boutons (au centre du controlPanel)
+        JPanel controlPanel = new JPanel(new BorderLayout());
         JPanel buttonRowPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
         JButton refreshButton = new JButton("Rafraîchir le stock");
         refreshButton.addActionListener(_ -> remplirTable());
@@ -93,25 +88,21 @@ public class StockPanel extends JPanel {
 
         controlPanel.add(buttonRowPanel, BorderLayout.CENTER);
 
-        // NOUVEAU: Label pour afficher la valeur totale du stock (en bas à gauche du controlPanel)
+        
         totalStockValueLabel = new JLabel("Valeur totale du stock : Calcul en cours...");
         totalStockValueLabel.setFont(new Font("Arial", Font.BOLD, 14));
         totalStockValueLabel.setForeground(Color.BLUE);
-        totalStockValueLabel.setHorizontalAlignment(SwingConstants.LEFT); // Alignement à gauche
-        controlPanel.add(totalStockValueLabel, BorderLayout.SOUTH); // Placé en bas du controlPanel
+        totalStockValueLabel.setHorizontalAlignment(SwingConstants.LEFT); 
+        controlPanel.add(totalStockValueLabel, BorderLayout.SOUTH); 
 
         add(controlPanel, BorderLayout.SOUTH);
-
-        // Remplir le tableau initialement
         remplirTable();
     }
-
-    // Méthode pour remplir ou rafraîchir le tableau avec les données de la BDD
     public void remplirTable() {
-        tableModel.setRowCount(0); // Vider le tableau existant
+        tableModel.setRowCount(0); 
         
         try {
-            List<Produit> produits = pharmacie.getProduits(); // Récupère tous les produits depuis la BDD via Pharmacie
+            List<Produit> produits = pharmacie.getProduits();
 
             for (Produit p : produits) {
                 Object[] rowData = new Object[columnNames.length];
@@ -143,7 +134,6 @@ public class StockPanel extends JPanel {
                 }
                 tableModel.addRow(rowData);
             }
-            // NOUVEAU: Mettre à jour la valeur totale du stock après avoir rempli le tableau
             updateTotalStockValue();
 
         }
@@ -155,9 +145,6 @@ public class StockPanel extends JPanel {
         }
     }
 
-    /**
-     * Calcule et met à jour le label affichant la valeur financière totale du stock.
-     */
     private void updateTotalStockValue() {
         try {
             double totalValue = pharmacie.calculerValeurTotaleStock();

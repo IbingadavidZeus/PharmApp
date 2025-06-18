@@ -18,34 +18,39 @@ public class HistoriqueVentesPanel extends JPanel {
     private Pharmacie pharmacie;
 
     // Composants de filtrage
+
     private JTextField startDateField;
     private JTextField endDateField;
-    private JComboBox<Utilisateur> utilisateurFilterComboBox; // Filtrer par vendeur
+    private JComboBox<Utilisateur> utilisateurFilterComboBox; 
     private JButton filterButton;
-    private JButton resetButton; // Pour réinitialiser les filtres
-
+    private JButton resetButton; 
+    
     // Tableau des factures
+
     private JTable facturesTable;
     private DefaultTableModel facturesTableModel;
     private final String[] columnNames = {"ID Facture", "Numéro Facture", "Date et Heure", "Vendu par", "Total TTC"};
 
     // Bouton pour voir les détails
+
     private JButton viewDetailsButton;
 
     // Message d'information/erreur
+
     private JLabel messageLabel;
 
     public HistoriqueVentesPanel(Pharmacie pharmacie) {
         this.pharmacie = pharmacie;
         initUI();
-        loadUtilisateursForFilter(); // Charger les utilisateurs pour la liste déroulante
-        refreshFacturesTable(); // Charger toutes les factures au démarrage
+        loadUtilisateursForFilter();
+        refreshFacturesTable();
     }
 
     private void initUI() {
         setLayout(new BorderLayout(10, 10));
 
         // --- Panel de Filtrage (Nord) ---
+
         JPanel filterPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 10));
 
         filterPanel.add(new JLabel("Date de début (JJ/MM/AAAA HH:MM):"));
@@ -71,15 +76,16 @@ public class HistoriqueVentesPanel extends JPanel {
         add(filterPanel, BorderLayout.NORTH);
 
         // --- Tableau des Factures (Centre) ---
+
         facturesTableModel = new DefaultTableModel(columnNames, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
-                return false; // Rendre le tableau non éditable
+                return false;
             }
         };
         facturesTable = new JTable(facturesTableModel);
-        facturesTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION); // Une seule facture sélectionnable
-        facturesTable.setAutoCreateRowSorter(true); // Permet le tri par colonne
+        facturesTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION); 
+        facturesTable.setAutoCreateRowSorter(true);
 
         JScrollPane scrollPane = new JScrollPane(facturesTable);
         add(scrollPane, BorderLayout.CENTER);
@@ -107,7 +113,7 @@ public class HistoriqueVentesPanel extends JPanel {
      */
     private void loadUtilisateursForFilter() {
         utilisateurFilterComboBox.removeAllItems();
-        utilisateurFilterComboBox.addItem(null); // Option "Tous les vendeurs"
+        utilisateurFilterComboBox.addItem(null);
         try {
             List<Utilisateur> users = pharmacie.getAllUtilisateurs();
             for (Utilisateur user : users) {
@@ -125,15 +131,13 @@ public class HistoriqueVentesPanel extends JPanel {
      * sinon affiche toutes les factures.
      */
     public void refreshFacturesTable() {
-        facturesTableModel.setRowCount(0); // Vider le tableau
+        facturesTableModel.setRowCount(0);
         messageLabel.setText("Chargement des factures...");
         messageLabel.setForeground(Color.BLUE);
 
         try {
             List<Facture> factures;
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
-
-            // Récupérer les dates de début et de fin
             LocalDateTime startDate = null;
             LocalDateTime endDate = null;
             try {
@@ -150,8 +154,6 @@ public class HistoriqueVentesPanel extends JPanel {
             }
 
             Utilisateur selectedUser = (Utilisateur) utilisateurFilterComboBox.getSelectedItem();
-
-            // MODIFIÉ: Appel des méthodes directement depuis l'objet 'pharmacie'
             if (startDate != null && endDate != null) {
                 factures = pharmacie.getFacturesByDateRange(startDate, endDate);
             } else if (selectedUser != null) {
@@ -197,7 +199,7 @@ public class HistoriqueVentesPanel extends JPanel {
     private void resetFilters() {
         startDateField.setText("");
         endDateField.setText("");
-        utilisateurFilterComboBox.setSelectedItem(null); // Sélectionne l'option "Tous les vendeurs"
+        utilisateurFilterComboBox.setSelectedItem(null);
         refreshFacturesTable();
     }
 
@@ -214,11 +216,9 @@ public class HistoriqueVentesPanel extends JPanel {
 
         try {
             int factureId = (int) facturesTableModel.getValueAt(selectedRow, 0);
-            // MODIFIÉ: Appel de la méthode directement depuis l'objet 'pharmacie'
             Facture facture = pharmacie.getFactureById(factureId);
 
             if (facture != null) {
-                // Créer un message détaillé pour la boîte de dialogue
                 StringBuilder details = new StringBuilder();
                 DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
 

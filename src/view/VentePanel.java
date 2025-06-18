@@ -339,7 +339,7 @@ public class VentePanel extends JPanel {
             }
             Facture nouvelleFacture = new Facture(currentUser);
             nouvelleFacture.setLignesFacture(panier.getLignesPanier());
-            nouvelleFacture.calculerMontantTotal(); // Cela calcule aussi totalHt maintenant
+            nouvelleFacture.calculerMontantTotal(); 
 
             boolean success = pharmacie.finaliserVente(nouvelleFacture);
 

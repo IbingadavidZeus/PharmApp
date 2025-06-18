@@ -7,7 +7,7 @@ import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.sql.SQLException;
-import java.util.Arrays; // Pour effacer le tableau de caractères du mot de passe
+import java.util.Arrays;
 import java.util.List;
 
 public class GestionUtilisateursPanel extends JPanel {
@@ -15,6 +15,7 @@ public class GestionUtilisateursPanel extends JPanel {
     private PharmacieDataListener dataListener;
 
     // Composants du formulaire
+
     private JTextField idField;
     private JTextField usernameField;
     private JPasswordField passwordField;
@@ -26,6 +27,7 @@ public class GestionUtilisateursPanel extends JPanel {
     private JLabel messageLabel;
 
     // Tableau des utilisateurs
+
     private JTable usersTable;
     private DefaultTableModel tableModel;
     private final String[] columnNames = {"ID", "Nom d'utilisateur", "Rôle"};
@@ -34,13 +36,14 @@ public class GestionUtilisateursPanel extends JPanel {
         this.pharmacie = pharmacie;
         this.dataListener = listener;
         initUI();
-        refreshUsersTable(); // Remplir le tableau au démarrage
+        refreshUsersTable();
     }
 
     private void initUI() {
         setLayout(new BorderLayout(10, 10));
 
         // --- Panel Formulaire (Nord) ---
+
         JPanel formPanel = new JPanel(new GridBagLayout());
         formPanel.setBorder(BorderFactory.createTitledBorder("Gestion des Utilisateurs"));
         GridBagConstraints gbc = new GridBagConstraints();
@@ -50,6 +53,7 @@ public class GestionUtilisateursPanel extends JPanel {
         int row = 0;
 
         // ID (lecture seule)
+
         gbc.gridx = 0; gbc.gridy = row; gbc.anchor = GridBagConstraints.EAST;
         formPanel.add(new JLabel("ID Utilisateur:"), gbc);
         gbc.gridx = 1; gbc.gridy = row; gbc.anchor = GridBagConstraints.WEST;
@@ -59,6 +63,7 @@ public class GestionUtilisateursPanel extends JPanel {
         row++;
 
         // Nom d'utilisateur
+
         gbc.gridx = 0; gbc.gridy = row; gbc.anchor = GridBagConstraints.EAST;
         formPanel.add(new JLabel("Nom d'utilisateur:"), gbc);
         gbc.gridx = 1; gbc.gridy = row; gbc.anchor = GridBagConstraints.WEST;
@@ -67,6 +72,7 @@ public class GestionUtilisateursPanel extends JPanel {
         row++;
 
         // Mot de passe
+
         gbc.gridx = 0; gbc.gridy = row; gbc.anchor = GridBagConstraints.EAST;
         formPanel.add(new JLabel("Mot de passe:"), gbc);
         gbc.gridx = 1; gbc.gridy = row; gbc.anchor = GridBagConstraints.WEST;
@@ -75,6 +81,7 @@ public class GestionUtilisateursPanel extends JPanel {
         row++;
 
         // Rôle
+
         gbc.gridx = 0; gbc.gridy = row; gbc.anchor = GridBagConstraints.EAST;
         formPanel.add(new JLabel("Rôle:"), gbc);
         gbc.gridx = 1; gbc.gridy = row; gbc.anchor = GridBagConstraints.WEST;
@@ -83,6 +90,7 @@ public class GestionUtilisateursPanel extends JPanel {
         row++;
 
         // Boutons d'action
+
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 0));
         addButton = new JButton("Ajouter");
         addButton.addActionListener(_ -> addUser());
@@ -103,6 +111,7 @@ public class GestionUtilisateursPanel extends JPanel {
         row++;
 
         // Message Label
+
         gbc.gridx = 0; gbc.gridy = row; gbc.gridwidth = 2; gbc.anchor = GridBagConstraints.CENTER;
         messageLabel = new JLabel(" ");
         messageLabel.setForeground(Color.RED);
@@ -111,6 +120,7 @@ public class GestionUtilisateursPanel extends JPanel {
         add(formPanel, BorderLayout.NORTH);
 
         // --- Panel Tableau (Centre) ---
+
         tableModel = new DefaultTableModel(columnNames, 0) {
             @Override
             public boolean isCellEditable(int row, int column) { return false; }
@@ -150,7 +160,7 @@ public class GestionUtilisateursPanel extends JPanel {
             idField.setText(tableModel.getValueAt(selectedRow, 0).toString());
             usernameField.setText(tableModel.getValueAt(selectedRow, 1).toString());
             roleComboBox.setSelectedItem(tableModel.getValueAt(selectedRow, 2).toString());
-            passwordField.setText(""); // Ne jamais afficher le mot de passe, même haché. Laisser vide.
+            passwordField.setText("");
             messageLabel.setText(" ");
         }
     }
@@ -158,7 +168,7 @@ public class GestionUtilisateursPanel extends JPanel {
     private void clearFields() {
         idField.setText("");
         usernameField.setText("");
-        passwordField.setText(""); // Efface le mot de passe du champ
+        passwordField.setText("");
         roleComboBox.setSelectedIndex(0);
         messageLabel.setText(" ");
         usersTable.clearSelection();
@@ -166,11 +176,12 @@ public class GestionUtilisateursPanel extends JPanel {
 
     private void addUser() {
         String username = usernameField.getText().trim();
-        char[] passwordChars = passwordField.getPassword(); // Récupère le mot de passe comme char[]
-        String plainPassword = new String(passwordChars); // Convertit en String pour passer à Pharmacie
+        char[] passwordChars = passwordField.getPassword();
+        String plainPassword = new String(passwordChars);
         String role = (String) roleComboBox.getSelectedItem();
 
         // Efface immédiatement le tableau de caractères du mot de passe pour la sécurité
+
         Arrays.fill(passwordChars, ' '); 
 
         if (username.isEmpty() || plainPassword.isEmpty() || role == null) {
@@ -217,11 +228,10 @@ public class GestionUtilisateursPanel extends JPanel {
         try {
             int id = Integer.parseInt(idText);
             String username = usernameField.getText().trim();
-            char[] passwordChars = passwordField.getPassword(); // Récupère le nouveau mot de passe (peut être vide)
+            char[] passwordChars = passwordField.getPassword();
             String newPlainPassword = new String(passwordChars); 
             String role = (String) roleComboBox.getSelectedItem();
 
-            // Efface immédiatement le tableau de caractères du mot de passe pour la sécurité
             Arrays.fill(passwordChars, ' '); 
 
             if (username.isEmpty() || role == null) {
@@ -230,8 +240,7 @@ public class GestionUtilisateursPanel extends JPanel {
                 return;
             }
 
-            Utilisateur updatedUser = new Utilisateur(id, username, null, role); // Mot de passe mis à null ici, il sera géré par Pharmacie.mettreAJourUtilisateur
-
+            Utilisateur updatedUser = new Utilisateur(id, username, null, role);
             boolean success = pharmacie.mettreAJourUtilisateur(updatedUser, newPlainPassword);
 
             if (success) {

@@ -5,11 +5,11 @@ import model.Utilisateur;
 
 import javax.swing.*;
 import java.awt.*;
-import java.util.Arrays; // Pour effacer le tableau de caractères du mot de passe
+import java.util.Arrays; 
 
 public class LoginPanel extends JPanel {
     private Pharmacie pharmacie;
-    private LoginListener listener; // Interface pour notifier MainFrame
+    private LoginListener listener; 
     private JTextField usernameField;
     private JPasswordField passwordField;
     private JButton loginButton;
@@ -24,26 +24,26 @@ public class LoginPanel extends JPanel {
     private void initUI() {
         setLayout(new GridBagLayout());
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(10, 10, 10, 10); // Marges entre les composants
+        gbc.insets = new Insets(10, 10, 10, 10);
 
         // Titre
         JLabel titleLabel = new JLabel("Connexion Pharmacie");
         titleLabel.setFont(new Font("Arial", Font.BOLD, 24));
         gbc.gridx = 0;
         gbc.gridy = 0;
-        gbc.gridwidth = 2; // Span across two columns
+        gbc.gridwidth = 2; 
         add(titleLabel, gbc);
 
         // Nom d'utilisateur
-        gbc.gridwidth = 1; // Reset gridwidth
+        gbc.gridwidth = 1; 
         gbc.gridx = 0;
         gbc.gridy = 1;
-        gbc.anchor = GridBagConstraints.EAST; // Align text to the right
+        gbc.anchor = GridBagConstraints.EAST;
         add(new JLabel("Nom d'utilisateur:"), gbc);
 
         gbc.gridx = 1;
         gbc.gridy = 1;
-        gbc.anchor = GridBagConstraints.WEST; // Align field to the left
+        gbc.anchor = GridBagConstraints.WEST; 
         usernameField = new JTextField(20);
         add(usernameField, gbc);
 
@@ -62,10 +62,10 @@ public class LoginPanel extends JPanel {
         // Bouton de connexion
         gbc.gridx = 0;
         gbc.gridy = 3;
-        gbc.gridwidth = 2; // Span across two columns
-        gbc.anchor = GridBagConstraints.CENTER; // Center the button
+        gbc.gridwidth = 2; 
+        gbc.anchor = GridBagConstraints.CENTER;
         loginButton = new JButton("Se connecter");
-        loginButton.addActionListener(_ -> attemptLogin()); // Suppression du try-catch direct ici
+        loginButton.addActionListener(_ -> attemptLogin());
         add(loginButton, gbc);
 
         // Message label
@@ -75,14 +75,13 @@ public class LoginPanel extends JPanel {
         add(messageLabel, gbc);
     }
 
-    private void attemptLogin() { // Suppression de "throws SQLException"
+    private void attemptLogin() { 
         String username = usernameField.getText();
-        char[] passwordChars = passwordField.getPassword(); // Récupère le mot de passe comme char[]
-        String plainPassword = new String(passwordChars); // Convertit en String pour l'authentification
+        char[] passwordChars = passwordField.getPassword(); 
+        String plainPassword = new String(passwordChars); 
 
         Utilisateur user = null;
         try {
-            // CORRECTION: Appel de la méthode authentifier() de Pharmacie
             user = pharmacie.authentifier(username, plainPassword); 
             
             if (user != null) {
@@ -94,14 +93,13 @@ public class LoginPanel extends JPanel {
             } else {
                 messageLabel.setText("Nom d'utilisateur ou mot de passe incorrect.");
                 messageLabel.setForeground(Color.RED);
-                passwordField.setText(""); // Efface le champ mot de passe
+                passwordField.setText(""); 
             }
-        } catch (Exception e) { // Capture toute autre exception inattendue
+        } catch (Exception e) { 
             messageLabel.setText("Une erreur inattendue est survenue: " + e.getMessage());
             messageLabel.setForeground(Color.RED);
             e.printStackTrace();
         } finally {
-            // Efface le tableau de caractères du mot de passe pour la sécurité
             if (passwordChars != null) {
                 Arrays.fill(passwordChars, ' '); 
             }

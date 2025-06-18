@@ -6,7 +6,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.io.Serializable; // Importer Serializable si Pharmacie l'est
+import java.io.Serializable; 
 
 public class InfoPanel extends JPanel {
     private Pharmacie pharmacie;
@@ -57,13 +57,13 @@ public class InfoPanel extends JPanel {
         // Adresse de la pharmacie
         gbc.gridx = 0;
         gbc.gridy = row;
-        gbc.anchor = GridBagConstraints.NORTHEAST; // Aligner en haut à droite pour JTextArea
+        gbc.anchor = GridBagConstraints.NORTHEAST;
         add(new JLabel("Adresse:"), gbc);
 
         gbc.gridx = 1;
         gbc.gridy = row;
         gbc.anchor = GridBagConstraints.WEST;
-        adressePharmacieArea = new JTextArea(3, 30); // 3 lignes, 30 colonnes
+        adressePharmacieArea = new JTextArea(3, 30);
         adressePharmacieArea.setLineWrap(true);
         adressePharmacieArea.setWrapStyleWord(true);
         JScrollPane scrollPane = new JScrollPane(adressePharmacieArea);
@@ -89,18 +89,13 @@ public class InfoPanel extends JPanel {
         messageLabel.setForeground(Color.BLUE);
         add(messageLabel, gbc);
 
-        // Mettre à jour les champs avec les données actuelles au chargement
         updatePharmacyInfo();
     }
 
-    /**
-     * Met à jour les champs du panneau avec les informations actuelles de la Pharmacie.
-     * Appelé lors de l'initialisation du panneau et quand les données sont rafraîchies.
-     */
     public void updatePharmacyInfo() {
         nomPharmacieField.setText(pharmacie.getNom());
         adressePharmacieArea.setText(pharmacie.getAdresse());
-        messageLabel.setText(" "); // Efface tout message précédent
+        messageLabel.setText(" ");
     }
 
     private void enregistrerModifications() {
@@ -115,15 +110,10 @@ public class InfoPanel extends JPanel {
 
         pharmacie.setNom(nouveauNom);
         pharmacie.setAdresse(nouvelleAdresse);
-        
-        // Comme ces informations sont stockées dans le fichier de sérialisation,
-        // nous allons appeler la sauvegarde explicitement.
-        pharmacie.sauvegarderDansFichier("pharmacie.ser"); // Sauvegarde les infos de base
-
+        pharmacie.sauvegarderDansFichier("pharmacie.ser"); 
         messageLabel.setText("Informations de la pharmacie enregistrées !");
         messageLabel.setForeground(Color.GREEN);
         
-        // Notifier la MainFrame que les données de la pharmacie ont changé (pour rafraîchir d'autres panels si nécessaire)
         if (dataListener != null) {
             dataListener.onPharmacieDataChanged();
         }

@@ -7,7 +7,7 @@ public class WelcomePanel extends JPanel {
     private JLabel welcomeLabel;
 
     public WelcomePanel() {
-        setLayout(new GridBagLayout()); // Centre le contenu
+        setLayout(new GridBagLayout()); 
         welcomeLabel = new JLabel("Bienvenue dans le système de gestion de Pharmacie !");
         welcomeLabel.setFont(new Font("Arial", Font.BOLD, 20));
         add(welcomeLabel);
