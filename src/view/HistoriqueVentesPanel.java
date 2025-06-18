@@ -21,15 +21,15 @@ public class HistoriqueVentesPanel extends JPanel {
 
     private JTextField startDateField;
     private JTextField endDateField;
-    private JComboBox<Utilisateur> utilisateurFilterComboBox; 
+    private JComboBox<Utilisateur> utilisateurFilterComboBox;
     private JButton filterButton;
-    private JButton resetButton; 
-    
+    private JButton resetButton;
+
     // Tableau des factures
 
     private JTable facturesTable;
     private DefaultTableModel facturesTableModel;
-    private final String[] columnNames = {"ID Facture", "Numéro Facture", "Date et Heure", "Vendu par", "Total TTC"};
+    private final String[] columnNames = { "ID Facture", "Numéro Facture", "Date et Heure", "Vendu par", "Total TTC" };
 
     // Bouton pour voir les détails
 
@@ -84,7 +84,7 @@ public class HistoriqueVentesPanel extends JPanel {
             }
         };
         facturesTable = new JTable(facturesTableModel);
-        facturesTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION); 
+        facturesTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         facturesTable.setAutoCreateRowSorter(true);
 
         JScrollPane scrollPane = new JScrollPane(facturesTable);
@@ -163,12 +163,12 @@ public class HistoriqueVentesPanel extends JPanel {
             }
 
             for (Facture f : factures) {
-                Object[] rowData = new Object[]{
-                    f.getId(),
-                    f.getNumeroFacture(),
-                    f.getDateFacture().format(formatter),
-                    f.getUtilisateur() != null ? f.getUtilisateur().getNomUtilisateur() : "N/A",
-                    String.format("%.2f FCFA", f.getMontantTotal())
+                Object[] rowData = new Object[] {
+                        f.getId(),
+                        f.getNumeroFacture(),
+                        f.getDateFacture().format(formatter),
+                        f.getUtilisateur() != null ? f.getUtilisateur().getNomUtilisateur() : "N/A",
+                        String.format("%.2f FCFA", f.getMontantTotal())
                 };
                 facturesTableModel.addRow(rowData);
             }
@@ -194,7 +194,8 @@ public class HistoriqueVentesPanel extends JPanel {
     }
 
     /**
-     * Réinitialise les champs de filtre et rafraîchit le tableau pour afficher toutes les factures.
+     * Réinitialise les champs de filtre et rafraîchit le tableau pour afficher
+     * toutes les factures.
      */
     private void resetFilters() {
         startDateField.setText("");
@@ -228,8 +229,10 @@ public class HistoriqueVentesPanel extends JPanel {
                 details.append("Numéro Facture:   ").append(facture.getNumeroFacture()).append("\n");
                 details.append("Date:             ").append(facture.getDateFacture().format(formatter)).append("\n");
                 details.append("Vendu par:        ").append(facture.getUtilisateur().getNomUtilisateur()).append("\n");
-                details.append("Total HT:         ").append(String.format("%.2f FCFA", facture.getTotalHt())).append("\n");
-                details.append("Total TTC:        ").append(String.format("%.2f FCFA", facture.getMontantTotal())).append("\n");
+                details.append("Total HT:         ").append(String.format("%.2f FCFA", facture.getTotalHt()))
+                        .append("\n");
+                details.append("Total TTC:        ").append(String.format("%.2f FCFA", facture.getMontantTotal()))
+                        .append("\n");
                 details.append("--------------------------------------------------\n");
                 details.append("Produits :\n");
                 details.append(String.format("%-25s %8s %12s %15s\n", "Nom Produit", "Qté", "Prix U.", "Sous-Total"));
@@ -237,10 +240,10 @@ public class HistoriqueVentesPanel extends JPanel {
 
                 for (LigneFacture ligne : facture.getLignesFacture()) {
                     details.append(String.format("%-25.25s %8d %12.2f %15.2f\n",
-                                                ligne.getProduit().getNom(),
-                                                ligne.getQuantite(),
-                                                ligne.getPrixUnitaire(),
-                                                ligne.getSousTotal()));
+                            ligne.getProduit().getNom(),
+                            ligne.getQuantite(),
+                            ligne.getPrixUnitaire(),
+                            ligne.getSousTotal()));
                 }
                 details.append("--------------------------------------------------\n");
                 details.append("Total TTC: ").append(String.format("%.2f FCFA", facture.getMontantTotal()));
@@ -251,7 +254,8 @@ public class HistoriqueVentesPanel extends JPanel {
                 JScrollPane scrollPane = new JScrollPane(textArea);
                 scrollPane.setPreferredSize(new Dimension(600, 400));
 
-                JOptionPane.showMessageDialog(this, scrollPane, "Détails de la Facture #" + facture.getNumeroFacture(), JOptionPane.INFORMATION_MESSAGE);
+                JOptionPane.showMessageDialog(this, scrollPane, "Détails de la Facture #" + facture.getNumeroFacture(),
+                        JOptionPane.INFORMATION_MESSAGE);
             } else {
                 messageLabel.setText("Facture introuvable.");
                 messageLabel.setForeground(Color.RED);

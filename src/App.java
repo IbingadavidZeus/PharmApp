@@ -13,7 +13,6 @@ public class App {
     public static void main(String[] args) {
         // --- Étape 1: Vérification et initialisation de la base de données ---
         try {
-            // Tente d'établir une connexion pour s'assurer que la base de données est accessible
             if (DatabaseManager.getConnection() != null) {
                 System.out.println("Connexion à la base de données établie avec succès au démarrage.");
                 UtilisateurDAO utilisateurDAO = new UtilisateurDAOImpl();
@@ -24,16 +23,15 @@ public class App {
                     System.out.println("Utilisateur 'admin' (mot de passe: 'adminpass') créé.");
                 }
             } else {
-                // Si la connexion retourne null (problème non capturé par SQLException directe)
                 System.err.println("Échec de la connexion à la base de données au démarrage.");
                 JOptionPane.showMessageDialog(null, "Impossible de se connecter à la base de données. Veuillez vérifier la configuration.", "Erreur de base de données", JOptionPane.ERROR_MESSAGE);
-                System.exit(1); // Quitter l'application si la connexion échoue
+                System.exit(1); 
             }
         } catch (SQLException e) {
             System.err.println("Erreur SQL lors de la vérification de la base de données au démarrage: " + e.getMessage());
             JOptionPane.showMessageDialog(null, "Erreur SQL lors du démarrage de l'application: " + e.getMessage(), "Erreur de base de données", JOptionPane.ERROR_MESSAGE);
             e.printStackTrace();
-            System.exit(1); // Quitter l'application en cas d'erreur critique de la base de données
+            System.exit(1); 
         } catch (Exception e) {
             // Capture toute autre exception inattendue lors du démarrage
             System.err.println("Une erreur inattendue est survenue au démarrage: " + e.getMessage());

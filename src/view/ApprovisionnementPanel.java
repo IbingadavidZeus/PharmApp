@@ -8,12 +8,12 @@ import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.sql.SQLException;
 import java.util.List;
-import javax.swing.event.ListSelectionEvent; 
-import javax.swing.event.ListSelectionListener; 
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
 
 public class ApprovisionnementPanel extends JPanel {
     private Pharmacie pharmacie;
-    private PharmacieDataListener dataListener; 
+    private PharmacieDataListener dataListener;
 
     // Composants de l'interface utilisateur
     private JTextField searchField;
@@ -23,11 +23,11 @@ public class ApprovisionnementPanel extends JPanel {
     private JTextField quantityToAddField;
     private JButton addSupplyButton;
 
-    private JLabel currentStockLabel; 
-    private JLabel messageLabel; 
+    private JLabel currentStockLabel;
+    private JLabel messageLabel;
 
     // Colonnes pour le tableau de sélection de produits
-    private final String[] productColumns = {"Référence", "Nom", "Prix U. TTC", "Stock Actuel"};
+    private final String[] productColumns = { "Référence", "Nom", "Prix U. TTC", "Stock Actuel" };
 
     public ApprovisionnementPanel(Pharmacie pharmacie, PharmacieDataListener dataListener) {
         this.pharmacie = pharmacie;
@@ -50,7 +50,9 @@ public class ApprovisionnementPanel extends JPanel {
         productTablePanel.setBorder(BorderFactory.createTitledBorder("Produits à Approvisionner"));
         productSelectionTableModel = new DefaultTableModel(productColumns, 0) {
             @Override
-            public boolean isCellEditable(int row, int column) { return false; }
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
         };
         productSelectionTable = new JTable(productSelectionTableModel);
         productSelectionTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
@@ -76,33 +78,46 @@ public class ApprovisionnementPanel extends JPanel {
         gbc.fill = GridBagConstraints.HORIZONTAL;
 
         int row = 0;
-        gbc.gridx = 0; gbc.gridy = row; gbc.anchor = GridBagConstraints.EAST;
+        gbc.gridx = 0;
+        gbc.gridy = row;
+        gbc.anchor = GridBagConstraints.EAST;
         bottomPanel.add(new JLabel("Stock actuel :"), gbc);
-        gbc.gridx = 1; gbc.gridy = row; gbc.anchor = GridBagConstraints.WEST;
-        currentStockLabel = new JLabel("N/A"); 
+        gbc.gridx = 1;
+        gbc.gridy = row;
+        gbc.anchor = GridBagConstraints.WEST;
+        currentStockLabel = new JLabel("N/A");
         currentStockLabel.setFont(new Font("Arial", Font.BOLD, 14));
         currentStockLabel.setForeground(Color.DARK_GRAY);
         bottomPanel.add(currentStockLabel, gbc);
         row++;
 
-
-        gbc.gridx = 0; gbc.gridy = row; gbc.anchor = GridBagConstraints.EAST;
+        gbc.gridx = 0;
+        gbc.gridy = row;
+        gbc.anchor = GridBagConstraints.EAST;
         bottomPanel.add(new JLabel("Quantité à ajouter:"), gbc);
-        gbc.gridx = 1; gbc.gridy = row; gbc.anchor = GridBagConstraints.WEST;
+        gbc.gridx = 1;
+        gbc.gridy = row;
+        gbc.anchor = GridBagConstraints.WEST;
         quantityToAddField = new JTextField("1", 10);
         bottomPanel.add(quantityToAddField, gbc);
         row++;
 
-        gbc.gridx = 0; gbc.gridy = row; gbc.gridwidth = 2; gbc.anchor = GridBagConstraints.CENTER;
+        gbc.gridx = 0;
+        gbc.gridy = row;
+        gbc.gridwidth = 2;
+        gbc.anchor = GridBagConstraints.CENTER;
         addSupplyButton = new JButton("Ajouter au Stock");
         addSupplyButton.setFont(new Font("Arial", Font.BOLD, 16));
-        addSupplyButton.setBackground(new Color(50, 150, 200)); 
+        addSupplyButton.setBackground(new Color(50, 150, 200));
         addSupplyButton.setForeground(Color.WHITE);
         addSupplyButton.addActionListener(_ -> addSupply());
         bottomPanel.add(addSupplyButton, gbc);
         row++;
 
-        gbc.gridx = 0; gbc.gridy = row; gbc.gridwidth = 2; gbc.anchor = GridBagConstraints.CENTER;
+        gbc.gridx = 0;
+        gbc.gridy = row;
+        gbc.gridwidth = 2;
+        gbc.anchor = GridBagConstraints.CENTER;
         messageLabel = new JLabel(" ");
         messageLabel.setForeground(Color.BLACK);
         bottomPanel.add(messageLabel, gbc);
@@ -117,21 +132,21 @@ public class ApprovisionnementPanel extends JPanel {
      */
     private void searchProducts() {
         String critere = searchField.getText().trim();
-        productSelectionTableModel.setRowCount(0); 
+        productSelectionTableModel.setRowCount(0);
 
         try {
             List<Produit> produits = pharmacie.rechercherProduits(critere);
             for (Produit p : produits) {
-                productSelectionTableModel.addRow(new Object[]{
-                    p.getReference(),
-                    p.getNom(),
-                    String.format("%.2f", p.calculerPrixTTC()),
-                    p.getQuantite() 
+                productSelectionTableModel.addRow(new Object[] {
+                        p.getReference(),
+                        p.getNom(),
+                        String.format("%.2f", p.calculerPrixTTC()),
+                        p.getQuantite()
                 });
             }
             messageLabel.setText("Recherche terminée. " + produits.size() + " produit(s) trouvé(s).");
             messageLabel.setForeground(Color.BLACK);
-            currentStockLabel.setText("N/A"); 
+            currentStockLabel.setText("N/A");
             currentStockLabel.setForeground(Color.GRAY);
         } catch (SQLException e) {
             messageLabel.setText("Erreur lors de la recherche des produits: " + e.getMessage());
@@ -141,24 +156,25 @@ public class ApprovisionnementPanel extends JPanel {
     }
 
     /**
-     * Rafraîchit le tableau de sélection des produits avec tous les produits du stock.
+     * Rafraîchit le tableau de sélection des produits avec tous les produits du
+     * stock.
      */
     public void refreshProductTable() {
         productSelectionTableModel.setRowCount(0);
-        searchField.setText(""); 
+        searchField.setText("");
         try {
             List<Produit> allProducts = pharmacie.getProduits();
             for (Produit p : allProducts) {
-                productSelectionTableModel.addRow(new Object[]{
-                    p.getReference(),
-                    p.getNom(),
-                    String.format("%.2f", p.calculerPrixTTC()),
-                    p.getQuantite() 
+                productSelectionTableModel.addRow(new Object[] {
+                        p.getReference(),
+                        p.getNom(),
+                        String.format("%.2f", p.calculerPrixTTC()),
+                        p.getQuantite()
                 });
             }
             messageLabel.setText("Tableau des produits rafraîchi.");
             messageLabel.setForeground(Color.BLACK);
-            currentStockLabel.setText("N/A"); 
+            currentStockLabel.setText("N/A");
             currentStockLabel.setForeground(Color.GRAY);
         } catch (SQLException e) {
             messageLabel.setText("Erreur lors du chargement des produits disponibles: " + e.getMessage());
@@ -191,12 +207,13 @@ public class ApprovisionnementPanel extends JPanel {
             boolean success = pharmacie.approvisionnerProduit(reference, quantityToAdd);
 
             if (success) {
-                messageLabel.setText("Stock du produit '" + reference + "' mis à jour avec succès. Quantité ajoutée: " + quantityToAdd);
+                messageLabel.setText("Stock du produit '" + reference + "' mis à jour avec succès. Quantité ajoutée: "
+                        + quantityToAdd);
                 messageLabel.setForeground(Color.GREEN);
-                refreshProductTable(); 
-                quantityToAddField.setText("1"); 
+                refreshProductTable();
+                quantityToAddField.setText("1");
                 if (dataListener != null) {
-                    dataListener.onPharmacieDataChanged(); 
+                    dataListener.onPharmacieDataChanged();
                 }
             } else {
                 messageLabel.setText("Échec de l'approvisionnement du produit.");
@@ -220,7 +237,8 @@ public class ApprovisionnementPanel extends JPanel {
     }
 
     /**
-     * Affiche le stock actuel du produit sélectionné dans le JLabel dédié, incluant sa valeur financière.
+     * Affiche le stock actuel du produit sélectionné dans le JLabel dédié, incluant
+     * sa valeur financière.
      */
     private void displaySelectedProductStock() {
         int selectedRow = productSelectionTable.getSelectedRow();
@@ -231,10 +249,10 @@ public class ApprovisionnementPanel extends JPanel {
 
             double financialValue = stockQuantity * priceTTC;
 
-            currentStockLabel.setText(String.format("%d unités (%.2f FCFA)", stockQuantity, financialValue)); 
-            currentStockLabel.setForeground(Color.BLUE); 
+            currentStockLabel.setText(String.format("%d unités (%.2f FCFA)", stockQuantity, financialValue));
+            currentStockLabel.setForeground(Color.BLUE);
         } else {
-            currentStockLabel.setText("N/A"); 
+            currentStockLabel.setText("N/A");
             currentStockLabel.setForeground(Color.GRAY);
         }
     }

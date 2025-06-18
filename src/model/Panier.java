@@ -3,15 +3,13 @@ package model;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional; // Pour Optional dans les Stream API
-import java.sql.SQLException; // Pour gérer les exceptions SQL
+import java.util.Optional;
+import java.sql.SQLException;
 
 public class Panier {
 
-    // Le panier contiendra une liste de LigneFacture.
-    // Chaque LigneFacture encapsulera le Produit, la quantité et le prix unitaire (TTC) au moment de l'ajout.
     private List<LigneFacture> lignesPanier;
-    private Pharmacie pharmacie; // Référence à l'instance de Pharmacie
+    private Pharmacie pharmacie;
 
     public Panier(Pharmacie pharmacie) {
         this.lignesPanier = new ArrayList<>();
@@ -23,7 +21,7 @@ public class Panier {
      * Vérifie la disponibilité du stock et gère l'ajout/mise à jour de la quantité.
      *
      * @param reference Référence du produit.
-     * @param quantite Quantité à ajouter.
+     * @param quantite  Quantité à ajouter.
      * @return Message d'erreur ou null si succès.
      */
     public String ajouterArticle(String reference, int quantite) {
@@ -39,23 +37,22 @@ public class Panier {
 
         // 2. Vérifier si le produit existe déjà dans le panier
         Optional<LigneFacture> existingLigne = lignesPanier.stream()
-            .filter(lf -> lf.getProduit().getId() == produit.getId())
-            .findFirst();
+                .filter(lf -> lf.getProduit().getId() == produit.getId())
+                .findFirst();
 
         int quantiteActuelleDansPanier = existingLigne.map(LigneFacture::getQuantite).orElse(0);
         int quantiteDesireeTotale = quantiteActuelleDansPanier + quantite;
 
         // 3. Vérifier la disponibilité du stock
         if (produit.getQuantite() < quantiteDesireeTotale) {
-            return "Quantité insuffisante en stock pour '" + produit.getNom() + "'. Stock disponible: " + produit.getQuantite() + ".";
+            return "Quantité insuffisante en stock pour '" + produit.getNom() + "'. Stock disponible: "
+                    + produit.getQuantite() + ".";
         }
 
         if (existingLigne.isPresent()) {
-            // Mettre à jour la quantité d'une ligne existante
             LigneFacture ligne = existingLigne.get();
             ligne.setQuantite(quantiteDesireeTotale); // setQuantite recalcule le sousTotal
         } else {
-            // Ajouter une nouvelle ligne (le prix unitaire est capturé au moment de la création de LigneFacture)
             lignesPanier.add(new LigneFacture(produit, quantite));
         }
         return null; // Succès
@@ -66,24 +63,21 @@ public class Panier {
      * Cherche le premier produit correspondant au nom.
      *
      * @param nomProduit Nom du produit.
-     * @param quantite Quantité à ajouter.
+     * @param quantite   Quantité à ajouter.
      * @return Message d'erreur ou null si succès.
      */
     public String ajouterArticleParNom(String nomProduit, int quantite) {
         if (quantite <= 0) {
             return "La quantité doit être supérieure à zéro.";
         }
-        
+
         try {
-            // Utiliser la nouvelle méthode de recherche de produits par critère qui pourrait être ajoutée
-            // dans ProduitDAO et exposée par Pharmacie.
-            // Pour l'instant, on fait une recherche simple sur tous les produits (moins efficace pour beaucoup de produits).
             Produit foundProduct = null;
             List<Produit> allProducts = pharmacie.getProduits();
             for (Produit p : allProducts) {
                 if (p.getNom().equalsIgnoreCase(nomProduit)) {
                     foundProduct = p;
-                    break; // Prend le premier trouvé
+                    break;
                 }
             }
 
@@ -91,7 +85,7 @@ public class Panier {
                 return "Produit avec le nom '" + nomProduit + "' introuvable.";
             }
 
-            return ajouterArticle(foundProduct.getReference(), quantite); // Réutiliser la logique principale
+            return ajouterArticle(foundProduct.getReference(), quantite);
         } catch (SQLException e) {
             System.err.println("Erreur SQL lors de la recherche de produit par nom pour le panier: " + e.getMessage());
             e.printStackTrace();
@@ -103,7 +97,7 @@ public class Panier {
      * Retire une quantité spécifique d'un produit du panier.
      *
      * @param reference Référence du produit.
-     * @param quantite Quantité à retirer.
+     * @param quantite  Quantité à retirer.
      * @return true si l'opération a réussi, false sinon.
      */
     public boolean retirerArticle(String reference, int quantite) {
@@ -113,8 +107,8 @@ public class Panier {
         }
 
         Optional<LigneFacture> ligneOpt = lignesPanier.stream()
-            .filter(lf -> lf.getProduit().getReference().equalsIgnoreCase(reference))
-            .findFirst();
+                .filter(lf -> lf.getProduit().getReference().equalsIgnoreCase(reference))
+                .findFirst();
 
         if (ligneOpt.isEmpty()) {
             System.out.println("Le produit " + reference + " n'est pas dans le panier.");
@@ -126,7 +120,7 @@ public class Panier {
             lignesPanier.remove(ligne);
             System.out.println("Produit " + reference + " entièrement retiré du panier.");
         } else {
-            ligne.setQuantite(ligne.getQuantite() - quantite); // setQuantite recalcule le sousTotal
+            ligne.setQuantite(ligne.getQuantite() - quantite);
             System.out.println("Quantité de " + reference + " réduite. Nouvelle quantité: " + ligne.getQuantite());
         }
         return true;
@@ -134,6 +128,7 @@ public class Panier {
 
     /**
      * Supprime complètement un produit du panier, quelle que soit la quantité.
+     * 
      * @param reference Référence du produit à supprimer.
      * @return true si le produit a été supprimé, false sinon.
      */
@@ -149,21 +144,23 @@ public class Panier {
 
     /**
      * Retourne la liste des lignes de facture contenues dans le panier.
+     * 
      * @return List<LigneFacture> les lignes du panier.
      */
     public List<LigneFacture> getLignesPanier() {
-        return new ArrayList<>(lignesPanier); // Retourne une copie pour éviter les modifications externes
+        return new ArrayList<>(lignesPanier);
     }
 
     /**
      * Calcule le prix total (TTC) de tous les articles dans le panier.
      * Utilise les prix unitaires stockés dans les LigneFacture.
+     * 
      * @return Le prix total du panier.
      */
     public double calculerTotalPanier() {
         return lignesPanier.stream()
-                           .mapToDouble(LigneFacture::getSousTotal)
-                           .sum();
+                .mapToDouble(LigneFacture::getSousTotal)
+                .sum();
     }
 
     /**
@@ -176,6 +173,7 @@ public class Panier {
 
     /**
      * Vérifie si le panier est vide.
+     * 
      * @return true si le panier est vide, false sinon.
      */
     public boolean estVide() {
@@ -192,15 +190,15 @@ public class Panier {
         StringBuilder sb = new StringBuilder();
         sb.append("--- Contenu du Panier ---\n");
         sb.append(String.format("%-15s %-30s %-10s %-15s %-15s\n",
-            "Ref.", "Nom", "Qté", "Prix U. TTC", "Sous-Total"));
+                "Ref.", "Nom", "Qté", "Prix U. TTC", "Sous-Total"));
         sb.append("-----------------------------------------------------------------------------------\n");
 
         for (LigneFacture ligne : lignesPanier) {
-            Produit p = ligne.getProduit(); // Le produit est déjà dans la LigneFacture
+            Produit p = ligne.getProduit();
             double prixU = ligne.getPrixUnitaire();
             int qte = ligne.getQuantite();
             sb.append(String.format("%-15s %-30s %-10d %-15s %-15s\n",
-                p.getReference(), p.getNom(), qte, df.format(prixU), df.format(ligne.getSousTotal())));
+                    p.getReference(), p.getNom(), qte, df.format(prixU), df.format(ligne.getSousTotal())));
         }
         sb.append("-----------------------------------------------------------------------------------\n");
         sb.append(String.format("%-75s %s FCFA\n", "Total provisoire:", df.format(calculerTotalPanier())));

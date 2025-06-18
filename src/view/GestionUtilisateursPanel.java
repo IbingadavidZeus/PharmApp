@@ -30,7 +30,7 @@ public class GestionUtilisateursPanel extends JPanel {
 
     private JTable usersTable;
     private DefaultTableModel tableModel;
-    private final String[] columnNames = {"ID", "Nom d'utilisateur", "Rôle"};
+    private final String[] columnNames = { "ID", "Nom d'utilisateur", "Rôle" };
 
     public GestionUtilisateursPanel(Pharmacie pharmacie, PharmacieDataListener listener) {
         this.pharmacie = pharmacie;
@@ -54,9 +54,13 @@ public class GestionUtilisateursPanel extends JPanel {
 
         // ID (lecture seule)
 
-        gbc.gridx = 0; gbc.gridy = row; gbc.anchor = GridBagConstraints.EAST;
+        gbc.gridx = 0;
+        gbc.gridy = row;
+        gbc.anchor = GridBagConstraints.EAST;
         formPanel.add(new JLabel("ID Utilisateur:"), gbc);
-        gbc.gridx = 1; gbc.gridy = row; gbc.anchor = GridBagConstraints.WEST;
+        gbc.gridx = 1;
+        gbc.gridy = row;
+        gbc.anchor = GridBagConstraints.WEST;
         idField = new JTextField(15);
         idField.setEditable(false);
         formPanel.add(idField, gbc);
@@ -64,28 +68,40 @@ public class GestionUtilisateursPanel extends JPanel {
 
         // Nom d'utilisateur
 
-        gbc.gridx = 0; gbc.gridy = row; gbc.anchor = GridBagConstraints.EAST;
+        gbc.gridx = 0;
+        gbc.gridy = row;
+        gbc.anchor = GridBagConstraints.EAST;
         formPanel.add(new JLabel("Nom d'utilisateur:"), gbc);
-        gbc.gridx = 1; gbc.gridy = row; gbc.anchor = GridBagConstraints.WEST;
+        gbc.gridx = 1;
+        gbc.gridy = row;
+        gbc.anchor = GridBagConstraints.WEST;
         usernameField = new JTextField(15);
         formPanel.add(usernameField, gbc);
         row++;
 
         // Mot de passe
 
-        gbc.gridx = 0; gbc.gridy = row; gbc.anchor = GridBagConstraints.EAST;
+        gbc.gridx = 0;
+        gbc.gridy = row;
+        gbc.anchor = GridBagConstraints.EAST;
         formPanel.add(new JLabel("Mot de passe:"), gbc);
-        gbc.gridx = 1; gbc.gridy = row; gbc.anchor = GridBagConstraints.WEST;
+        gbc.gridx = 1;
+        gbc.gridy = row;
+        gbc.anchor = GridBagConstraints.WEST;
         passwordField = new JPasswordField(15);
         formPanel.add(passwordField, gbc);
         row++;
 
         // Rôle
 
-        gbc.gridx = 0; gbc.gridy = row; gbc.anchor = GridBagConstraints.EAST;
+        gbc.gridx = 0;
+        gbc.gridy = row;
+        gbc.anchor = GridBagConstraints.EAST;
         formPanel.add(new JLabel("Rôle:"), gbc);
-        gbc.gridx = 1; gbc.gridy = row; gbc.anchor = GridBagConstraints.WEST;
-        roleComboBox = new JComboBox<>(new String[]{"vendeur", "admin"});
+        gbc.gridx = 1;
+        gbc.gridy = row;
+        gbc.anchor = GridBagConstraints.WEST;
+        roleComboBox = new JComboBox<>(new String[] { "vendeur", "admin" });
         formPanel.add(roleComboBox, gbc);
         row++;
 
@@ -106,13 +122,19 @@ public class GestionUtilisateursPanel extends JPanel {
         buttonPanel.add(deleteButton);
         buttonPanel.add(clearButton);
 
-        gbc.gridx = 0; gbc.gridy = row; gbc.gridwidth = 2; gbc.anchor = GridBagConstraints.CENTER;
+        gbc.gridx = 0;
+        gbc.gridy = row;
+        gbc.gridwidth = 2;
+        gbc.anchor = GridBagConstraints.CENTER;
         formPanel.add(buttonPanel, gbc);
         row++;
 
         // Message Label
 
-        gbc.gridx = 0; gbc.gridy = row; gbc.gridwidth = 2; gbc.anchor = GridBagConstraints.CENTER;
+        gbc.gridx = 0;
+        gbc.gridy = row;
+        gbc.gridwidth = 2;
+        gbc.anchor = GridBagConstraints.CENTER;
         messageLabel = new JLabel(" ");
         messageLabel.setForeground(Color.RED);
         formPanel.add(messageLabel, gbc);
@@ -123,7 +145,9 @@ public class GestionUtilisateursPanel extends JPanel {
 
         tableModel = new DefaultTableModel(columnNames, 0) {
             @Override
-            public boolean isCellEditable(int row, int column) { return false; }
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
         };
         usersTable = new JTable(tableModel);
         usersTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
@@ -142,7 +166,7 @@ public class GestionUtilisateursPanel extends JPanel {
         try {
             List<Utilisateur> users = pharmacie.getAllUtilisateurs();
             for (Utilisateur user : users) {
-                tableModel.addRow(new Object[]{user.getId(), user.getNomUtilisateur(), user.getRole()});
+                tableModel.addRow(new Object[] { user.getId(), user.getNomUtilisateur(), user.getRole() });
             }
             messageLabel.setText("Tableau des utilisateurs rafraîchi.");
             messageLabel.setForeground(Color.BLACK);
@@ -180,9 +204,10 @@ public class GestionUtilisateursPanel extends JPanel {
         String plainPassword = new String(passwordChars);
         String role = (String) roleComboBox.getSelectedItem();
 
-        // Efface immédiatement le tableau de caractères du mot de passe pour la sécurité
+        // Efface immédiatement le tableau de caractères du mot de passe pour la
+        // sécurité
 
-        Arrays.fill(passwordChars, ' '); 
+        Arrays.fill(passwordChars, ' ');
 
         if (username.isEmpty() || plainPassword.isEmpty() || role == null) {
             messageLabel.setText("Tous les champs (Nom d'utilisateur, Mot de passe, Rôle) sont obligatoires.");
@@ -192,7 +217,7 @@ public class GestionUtilisateursPanel extends JPanel {
 
         try {
             Utilisateur newUser = new Utilisateur(username, plainPassword, role);
-            
+
             boolean success = pharmacie.ajouterUtilisateur(newUser, plainPassword);
 
             if (success) {
@@ -203,7 +228,8 @@ public class GestionUtilisateursPanel extends JPanel {
                     dataListener.onPharmacieDataChanged();
                 }
             } else {
-                messageLabel.setText("Échec de l'ajout de l'utilisateur. Peut-être que le nom d'utilisateur existe déjà.");
+                messageLabel
+                        .setText("Échec de l'ajout de l'utilisateur. Peut-être que le nom d'utilisateur existe déjà.");
                 messageLabel.setForeground(Color.RED);
             }
         } catch (SQLException e) {
@@ -229,10 +255,10 @@ public class GestionUtilisateursPanel extends JPanel {
             int id = Integer.parseInt(idText);
             String username = usernameField.getText().trim();
             char[] passwordChars = passwordField.getPassword();
-            String newPlainPassword = new String(passwordChars); 
+            String newPlainPassword = new String(passwordChars);
             String role = (String) roleComboBox.getSelectedItem();
 
-            Arrays.fill(passwordChars, ' '); 
+            Arrays.fill(passwordChars, ' ');
 
             if (username.isEmpty() || role == null) {
                 messageLabel.setText("Nom d'utilisateur et Rôle sont obligatoires.");
@@ -279,7 +305,8 @@ public class GestionUtilisateursPanel extends JPanel {
         try {
             int id = Integer.parseInt(idText);
             int confirm = JOptionPane.showConfirmDialog(this,
-                    "Êtes-vous sûr de vouloir supprimer l'utilisateur ID: " + id + " (" + usernameField.getText() + ") ?",
+                    "Êtes-vous sûr de vouloir supprimer l'utilisateur ID: " + id + " (" + usernameField.getText()
+                            + ") ?",
                     "Confirmer la suppression", JOptionPane.YES_NO_OPTION);
 
             if (confirm == JOptionPane.YES_OPTION) {

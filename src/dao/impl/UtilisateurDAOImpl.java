@@ -15,7 +15,6 @@ public class UtilisateurDAOImpl implements UtilisateurDAO {
 
     @Override
     public boolean ajouterUtilisateur(Utilisateur utilisateur) throws SQLException {
-        // Assume utilisateur.getMotDePasse() returns the HASHED password now
         String sql = "INSERT INTO Utilisateurs (nom_utilisateur, mot_de_passe_hash, role) VALUES (?, ?, ?)";
         Connection conn = null;
         PreparedStatement pstmt = null;
@@ -23,7 +22,7 @@ public class UtilisateurDAOImpl implements UtilisateurDAO {
             conn = DatabaseManager.getConnection();
             pstmt = conn.prepareStatement(sql);
             pstmt.setString(1, utilisateur.getNomUtilisateur());
-            pstmt.setString(2, utilisateur.getMotDePasse()); // This should be the HASHED password
+            pstmt.setString(2, utilisateur.getMotDePasse());
             pstmt.setString(3, utilisateur.getRole());
             int rowsAffected = pstmt.executeUpdate();
             return rowsAffected > 0;
@@ -34,8 +33,6 @@ public class UtilisateurDAOImpl implements UtilisateurDAO {
 
     @Override
     public Utilisateur authentifierUtilisateur(String nomUtilisateur, String motDePasse) throws SQLException {
-        // This method will need proper password hashing comparison in a real app.
-        // For now, it will retrieve the user and the calling service will compare the hash.
         String sql = "SELECT id_utilisateur, nom_utilisateur, mot_de_passe_hash, role FROM Utilisateurs WHERE nom_utilisateur = ?";
         Connection conn = null;
         PreparedStatement pstmt = null;
@@ -47,18 +44,13 @@ public class UtilisateurDAOImpl implements UtilisateurDAO {
             pstmt.setString(1, nomUtilisateur);
             rs = pstmt.executeQuery();
             if (rs.next()) {
-                // CORRECTION: Retrieve id_utilisateur and use the constructor that includes ID
                 int idUtilisateur = rs.getInt("id_utilisateur");
                 String dbNomUtilisateur = rs.getString("nom_utilisateur");
                 String motDePasseHash = rs.getString("mot_de_passe_hash");
                 String role = rs.getString("role");
-                
-                // In a real application, you'd hash the 'motDePasse' provided by the user
-                // and compare it with 'motDePasseHash' from the DB here.
-                // For this example, we return the user if found, assuming comparison happens elsewhere.
-                // If this method is for actual authentication, add password verification logic here.
-                if (motDePasse.equals(motDePasseHash)) { // Placeholder: In production, use a secure hashing library
-                     utilisateur = new Utilisateur(idUtilisateur, dbNomUtilisateur, motDePasseHash, role);
+
+                if (motDePasse.equals(motDePasseHash)) {
+                    utilisateur = new Utilisateur(idUtilisateur, dbNomUtilisateur, motDePasseHash, role);
                 }
             }
         } finally {
@@ -70,7 +62,6 @@ public class UtilisateurDAOImpl implements UtilisateurDAO {
     @Override
     public List<Utilisateur> getAllUtilisateurs() throws SQLException {
         List<Utilisateur> utilisateurs = new ArrayList<>();
-        // CORRECTION: Select id_utilisateur
         String sql = "SELECT id_utilisateur, nom_utilisateur, mot_de_passe_hash, role FROM Utilisateurs";
         Connection conn = null;
         PreparedStatement pstmt = null;
@@ -80,13 +71,11 @@ public class UtilisateurDAOImpl implements UtilisateurDAO {
             pstmt = conn.prepareStatement(sql);
             rs = pstmt.executeQuery();
             while (rs.next()) {
-                // CORRECTION: Retrieve id_utilisateur and use the constructor that includes ID
                 Utilisateur utilisateur = new Utilisateur(
-                    rs.getInt("id_utilisateur"), // Get the ID
-                    rs.getString("nom_utilisateur"),
-                    rs.getString("mot_de_passe_hash"),
-                    rs.getString("role")
-                );
+                        rs.getInt("id_utilisateur"),
+                        rs.getString("nom_utilisateur"),
+                        rs.getString("mot_de_passe_hash"),
+                        rs.getString("role"));
                 utilisateurs.add(utilisateur);
             }
         } finally {
@@ -97,18 +86,16 @@ public class UtilisateurDAOImpl implements UtilisateurDAO {
 
     @Override
     public boolean mettreAJourUtilisateur(Utilisateur utilisateur) throws SQLException {
-        // CORRECTION: Use id_utilisateur for WHERE clause for robust updates
-        // Assume utilisateur.getMotDePasse() returns the HASHED password now
         String sql = "UPDATE Utilisateurs SET nom_utilisateur = ?, mot_de_passe_hash = ?, role = ? WHERE id_utilisateur = ?";
         Connection conn = null;
         PreparedStatement pstmt = null;
         try {
             conn = DatabaseManager.getConnection();
             pstmt = conn.prepareStatement(sql);
-            pstmt.setString(1, utilisateur.getNomUtilisateur()); // Can update username as well
-            pstmt.setString(2, utilisateur.getMotDePasse()); // This should be the HASHED password
+            pstmt.setString(1, utilisateur.getNomUtilisateur());
+            pstmt.setString(2, utilisateur.getMotDePasse());
             pstmt.setString(3, utilisateur.getRole());
-            pstmt.setInt(4, utilisateur.getId()); // Use the ID for the WHERE clause
+            pstmt.setInt(4, utilisateur.getId());
             int rowsAffected = pstmt.executeUpdate();
             return rowsAffected > 0;
         } finally {
@@ -117,7 +104,6 @@ public class UtilisateurDAOImpl implements UtilisateurDAO {
     }
 
     @Override
-    // CORRECTION: Changed parameter from String nomUtilisateur to int id to match interface
     public boolean supprimerUtilisateur(int id) throws SQLException {
         String sql = "DELETE FROM Utilisateurs WHERE id_utilisateur = ?";
         Connection conn = null;
@@ -125,7 +111,7 @@ public class UtilisateurDAOImpl implements UtilisateurDAO {
         try {
             conn = DatabaseManager.getConnection();
             pstmt = conn.prepareStatement(sql);
-            pstmt.setInt(1, id); // Use the ID for deletion
+            pstmt.setInt(1, id);
             int rowsAffected = pstmt.executeUpdate();
             return rowsAffected > 0;
         } finally {
@@ -135,7 +121,6 @@ public class UtilisateurDAOImpl implements UtilisateurDAO {
 
     @Override
     public Utilisateur getUtilisateurById(int id) throws SQLException {
-        // This method was mostly correct, just ensuring column names match
         String sql = "SELECT id_utilisateur, nom_utilisateur, mot_de_passe_hash, role FROM Utilisateurs WHERE id_utilisateur = ?";
         Connection conn = null;
         PreparedStatement pstmt = null;
@@ -153,7 +138,7 @@ public class UtilisateurDAOImpl implements UtilisateurDAO {
                 String nomUtilisateur = rs.getString("nom_utilisateur");
                 String motDePasseHash = rs.getString("mot_de_passe_hash");
                 String role = rs.getString("role");
-                
+
                 utilisateur = new Utilisateur(idUtilisateur, nomUtilisateur, motDePasseHash, role);
             }
         } finally {

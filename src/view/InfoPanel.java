@@ -6,7 +6,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.io.Serializable; 
+import java.io.Serializable;
 
 public class InfoPanel extends JPanel {
     private Pharmacie pharmacie;
@@ -110,10 +110,10 @@ public class InfoPanel extends JPanel {
 
         pharmacie.setNom(nouveauNom);
         pharmacie.setAdresse(nouvelleAdresse);
-        pharmacie.sauvegarderDansFichier("pharmacie.ser"); 
+        pharmacie.sauvegarderDansFichier("pharmacie.ser");
         messageLabel.setText("Informations de la pharmacie enregistrées !");
         messageLabel.setForeground(Color.GREEN);
-        
+
         if (dataListener != null) {
             dataListener.onPharmacieDataChanged();
         }

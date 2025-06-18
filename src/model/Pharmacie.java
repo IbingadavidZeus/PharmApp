@@ -19,12 +19,12 @@ public class Pharmacie implements Serializable {
     private String nom;
     private String adresse;
 
-    // Dépendances DAO (non sérialisables, initialisées au démarrage ou par injection)
+    // Dépendances DAO (non sérialisables, initialisées au démarrage ou par
+    // injection)
     private transient ProduitDAO produitDAO;
     private transient UtilisateurDAO utilisateurDAO;
     private transient FactureDAO factureDAO;
     private transient LigneFactureDAO ligneFactureDAO;
-
 
     public Pharmacie(String nom, String adresse) {
         this.nom = nom;
@@ -89,7 +89,7 @@ public class Pharmacie implements Serializable {
     public List<Produit> getProduits() throws SQLException {
         return produitDAO.getAllProduits();
     }
-    
+
     public List<Produit> rechercherProduits(String critere) throws SQLException {
         return produitDAO.rechercherProduits(critere);
     }
@@ -111,7 +111,7 @@ public class Pharmacie implements Serializable {
         int nouvelleQuantiteTotale = produit.getQuantite() + quantiteAAjouter;
         return mettreAJourQuantiteProduit(reference, nouvelleQuantiteTotale);
     }
-    
+
     public double calculerValeurTotaleStock() throws SQLException {
         double valeurTotale = 0.0;
         List<Produit> allProducts = produitDAO.getAllProduits();
@@ -120,6 +120,7 @@ public class Pharmacie implements Serializable {
         }
         return valeurTotale;
     }
+
     public Utilisateur authentifier(String nomUtilisateur, String motDePasse) {
         try {
             return utilisateurDAO.authentifierUtilisateur(nomUtilisateur, motDePasse);
@@ -129,10 +130,12 @@ public class Pharmacie implements Serializable {
             return null;
         }
     }
+
     public boolean ajouterUtilisateur(Utilisateur utilisateur, String plainPassword) throws SQLException {
         utilisateur.setMotDePasse(plainPassword);
         return utilisateurDAO.ajouterUtilisateur(utilisateur);
     }
+
     public boolean mettreAJourUtilisateur(Utilisateur utilisateur, String newPlainPassword) throws SQLException {
         if (newPlainPassword != null && !newPlainPassword.trim().isEmpty()) {
             utilisateur.setMotDePasse(newPlainPassword);
@@ -158,9 +161,11 @@ public class Pharmacie implements Serializable {
     public Utilisateur getUtilisateurById(int id) throws SQLException {
         return utilisateurDAO.getUtilisateurById(id);
     }
+
     public boolean finaliserVente(Facture facture) throws SQLException {
         return factureDAO.ajouterFacture(facture);
     }
+
     public List<Facture> getAllFactures() throws SQLException {
         return factureDAO.getAllFactures();
     }
@@ -176,6 +181,7 @@ public class Pharmacie implements Serializable {
     public Facture getFactureById(int id) throws SQLException {
         return factureDAO.getFactureById(id);
     }
+
     public void sauvegarderDansFichier(String nomFichier) {
         try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(nomFichier))) {
             oos.writeObject(this);
@@ -189,7 +195,8 @@ public class Pharmacie implements Serializable {
     public static Pharmacie chargerDepuisFichier(String nomFichier) {
         File file = new File(nomFichier);
         if (!file.exists()) {
-            System.out.println("Fichier de sauvegarde non trouvé: " + nomFichier + ". Une nouvelle Pharmacie sera créée.");
+            System.out.println(
+                    "Fichier de sauvegarde non trouvé: " + nomFichier + ". Une nouvelle Pharmacie sera créée.");
             return null;
         }
         try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(nomFichier))) {

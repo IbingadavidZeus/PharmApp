@@ -8,7 +8,7 @@ import model.ProduitParaPharmacie;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
-import java.sql.SQLException; 
+import java.sql.SQLException;
 import java.util.List;
 
 public class StockPanel extends JPanel {
@@ -18,8 +18,10 @@ public class StockPanel extends JPanel {
     private PharmacieDataListener dataListener;
 
     private JLabel totalStockValueLabel;
-    
-    private final String[] columnNames = {"ID", "Référence", "Nom", "Description", "Type", "Prix HT", "Quantité", "Prix TTC", "Générique", "Ordonnance", "Catégorie Para."};
+
+    private final String[] columnNames = { "ID", "Référence", "Nom", "Description", "Type", "Prix HT", "Quantité",
+            "Prix TTC", "Générique", "Ordonnance", "Catégorie Para." };
+
     public StockPanel(Pharmacie pharmacie, PharmacieDataListener listener) {
         this.pharmacie = pharmacie;
         this.dataListener = listener;
@@ -35,8 +37,8 @@ public class StockPanel extends JPanel {
         productTable = new JTable(tableModel);
         productTable.setFillsViewportHeight(true);
         productTable.setAutoCreateRowSorter(true);
-        
-        productTable.setRowHeight(24); 
+
+        productTable.setRowHeight(24);
 
         JScrollPane scrollPane = new JScrollPane(productTable);
         add(scrollPane, BorderLayout.CENTER);
@@ -53,9 +55,9 @@ public class StockPanel extends JPanel {
             int selectedRow = productTable.getSelectedRow();
             if (selectedRow != -1) {
                 String referenceToDelete = (String) tableModel.getValueAt(selectedRow, 1);
-                int confirm = JOptionPane.showConfirmDialog(this, 
-                                                            "Voulez-vous vraiment supprimer le produit '" + referenceToDelete + "' ?", 
-                                                            "Confirmer Suppression", JOptionPane.YES_NO_OPTION);
+                int confirm = JOptionPane.showConfirmDialog(this,
+                        "Voulez-vous vraiment supprimer le produit '" + referenceToDelete + "' ?",
+                        "Confirmer Suppression", JOptionPane.YES_NO_OPTION);
                 if (confirm == JOptionPane.YES_OPTION) {
                     try {
                         boolean deleted = pharmacie.supprimerProduit(referenceToDelete);
@@ -66,41 +68,43 @@ public class StockPanel extends JPanel {
                                 dataListener.onPharmacieDataChanged();
                             }
                         } else {
-                            JOptionPane.showMessageDialog(this, "Erreur lors de la suppression du produit.", "Erreur", JOptionPane.ERROR_MESSAGE);
+                            JOptionPane.showMessageDialog(this, "Erreur lors de la suppression du produit.", "Erreur",
+                                    JOptionPane.ERROR_MESSAGE);
                         }
                     } catch (SQLException ex) {
-                        JOptionPane.showMessageDialog(this, 
-                                                      "Erreur de base de données lors de la suppression: " + ex.getMessage(), 
-                                                      "Erreur SQL", JOptionPane.ERROR_MESSAGE);
+                        JOptionPane.showMessageDialog(this,
+                                "Erreur de base de données lors de la suppression: " + ex.getMessage(),
+                                "Erreur SQL", JOptionPane.ERROR_MESSAGE);
                         ex.printStackTrace();
                     } catch (Exception ex) {
-                        JOptionPane.showMessageDialog(this, 
-                                                      "Une erreur inattendue est survenue lors de la suppression: " + ex.getMessage(), 
-                                                      "Erreur", JOptionPane.ERROR_MESSAGE);
+                        JOptionPane.showMessageDialog(this,
+                                "Une erreur inattendue est survenue lors de la suppression: " + ex.getMessage(),
+                                "Erreur", JOptionPane.ERROR_MESSAGE);
                         ex.printStackTrace();
                     }
                 }
             } else {
-                JOptionPane.showMessageDialog(this, "Veuillez sélectionner un produit à supprimer.", "Aucune sélection", JOptionPane.WARNING_MESSAGE);
+                JOptionPane.showMessageDialog(this, "Veuillez sélectionner un produit à supprimer.", "Aucune sélection",
+                        JOptionPane.WARNING_MESSAGE);
             }
         });
         buttonRowPanel.add(deleteButton);
 
         controlPanel.add(buttonRowPanel, BorderLayout.CENTER);
 
-        
         totalStockValueLabel = new JLabel("Valeur totale du stock : Calcul en cours...");
         totalStockValueLabel.setFont(new Font("Arial", Font.BOLD, 14));
         totalStockValueLabel.setForeground(Color.BLUE);
-        totalStockValueLabel.setHorizontalAlignment(SwingConstants.LEFT); 
-        controlPanel.add(totalStockValueLabel, BorderLayout.SOUTH); 
+        totalStockValueLabel.setHorizontalAlignment(SwingConstants.LEFT);
+        controlPanel.add(totalStockValueLabel, BorderLayout.SOUTH);
 
         add(controlPanel, BorderLayout.SOUTH);
         remplirTable();
     }
+
     public void remplirTable() {
-        tableModel.setRowCount(0); 
-        
+        tableModel.setRowCount(0);
+
         try {
             List<Produit> produits = pharmacie.getProduits();
 
@@ -136,11 +140,10 @@ public class StockPanel extends JPanel {
             }
             updateTotalStockValue();
 
-        }
-        catch (SQLException ex) {
-            JOptionPane.showMessageDialog(this, 
-                                          "Erreur lors du chargement des produits depuis la base de données: " + ex.getMessage(), 
-                                          "Erreur de Base de Données", JOptionPane.ERROR_MESSAGE);
+        } catch (SQLException ex) {
+            JOptionPane.showMessageDialog(this,
+                    "Erreur lors du chargement des produits depuis la base de données: " + ex.getMessage(),
+                    "Erreur de Base de Données", JOptionPane.ERROR_MESSAGE);
             ex.printStackTrace();
         }
     }

@@ -15,7 +15,8 @@ interface LoginListener {
     void onLoginSuccess(Utilisateur user);
 }
 
-// Interface pour notifier MainFrame des changements de données dans la Pharmacie
+// Interface pour notifier MainFrame des changements de données dans la
+// Pharmacie
 interface PharmacieDataListener {
     void onPharmacieDataChanged();
 }
@@ -54,14 +55,14 @@ public class MainFrame extends JFrame implements LoginListener, PharmacieDataLis
 
         // NOUVEAU: Définir l'icône de la fenêtre
         try {
-            Image icon = Toolkit.getDefaultToolkit().getImage(getClass().getResource("/image/app_icon.png")); 
+            Image icon = Toolkit.getDefaultToolkit().getImage(getClass().getResource("/image/app_icon.png"));
             this.setIconImage(icon);
         } catch (Exception e) {
             System.err.println("Erreur lors du chargement de l'icône: " + e.getMessage());
             e.printStackTrace();
-            // Optionnel: Définir une icône par défaut ou ne rien faire si le chargement échoue
+            // Optionnel: Définir une icône par défaut ou ne rien faire si le chargement
+            // échoue
         }
-
 
         addWindowListener(new WindowAdapter() {
             @Override
@@ -82,9 +83,9 @@ public class MainFrame extends JFrame implements LoginListener, PharmacieDataLis
         stockPanel = new StockPanel(pharmacie, this);
         infoPanel = new InfoPanel(pharmacie, this);
         ventePanel = new VentePanel(pharmacie, currentUser, this);
-        gestionUtilisateursPanel = new GestionUtilisateursPanel(pharmacie, this); 
+        gestionUtilisateursPanel = new GestionUtilisateursPanel(pharmacie, this);
         historiqueVentesPanel = new HistoriqueVentesPanel(pharmacie);
-        approvisionnementPanel = new ApprovisionnementPanel(pharmacie, this); 
+        approvisionnementPanel = new ApprovisionnementPanel(pharmacie, this);
 
         mainPanel.add(loginPanel, "Login");
         mainPanel.add(welcomePanel, "Welcome");
@@ -104,7 +105,7 @@ public class MainFrame extends JFrame implements LoginListener, PharmacieDataLis
     private void showCard(String cardName) {
         cardLayout.show(mainPanel, cardName);
         this.currentCardName = cardName;
-        
+
         // Rafraîchir les panels si nécessaire lors du changement de carte
         if (Objects.equals(cardName, "Vente")) {
             ventePanel.setCurrentUser(currentUser);
@@ -141,7 +142,7 @@ public class MainFrame extends JFrame implements LoginListener, PharmacieDataLis
         if (menuBar != null) {
             setJMenuBar(null);
         }
-        
+
         menuBar = new JMenuBar();
 
         JMenu homeMenu = new JMenu("Accueil");
@@ -160,7 +161,7 @@ public class MainFrame extends JFrame implements LoginListener, PharmacieDataLis
             approvisionnementItem.addActionListener(_ -> showCard("Approvisionnement"));
             gestionMenu.add(approvisionnementItem);
         }
-        
+
         JMenuItem ajouterProduitItem = new JMenuItem("Ajouter Produit");
         ajouterProduitItem.addActionListener(_ -> showCard("AjouterProduit"));
         gestionMenu.add(ajouterProduitItem);
@@ -190,7 +191,8 @@ public class MainFrame extends JFrame implements LoginListener, PharmacieDataLis
         JMenu logoutMenu = new JMenu("Session");
         JMenuItem logoutItem = new JMenuItem("Déconnexion");
         logoutItem.addActionListener(_ -> {
-            int confirm = JOptionPane.showConfirmDialog(this, "Voulez-vous vraiment vous déconnecter ?", "Déconnexion", JOptionPane.YES_NO_OPTION);
+            int confirm = JOptionPane.showConfirmDialog(this, "Voulez-vous vraiment vous déconnecter ?", "Déconnexion",
+                    JOptionPane.YES_NO_OPTION);
             if (confirm == JOptionPane.YES_OPTION) {
                 currentUser = null;
                 showLoginPanel();

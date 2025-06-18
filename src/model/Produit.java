@@ -5,13 +5,12 @@ import java.io.Serializable;
 public abstract class Produit implements Serializable {
     private static final long serialVersionUID = 1L;
 
-    // Constante pour le taux de TVA standard (correspondant à la valeur par défaut de la BDD)
-    protected static final double TAUX_TVA_STANDARD = 0.18; // 18%
+    protected static final double TAUX_TVA_STANDARD = 0.18;
 
-    private int id; // ID de la base de données
+    private int id;
     private String nom;
     private String reference;
-    private String description; // NOUVEAU: Ajout du champ description
+    private String description;
     private double prixHt;
     private int quantite;
 
@@ -19,15 +18,17 @@ public abstract class Produit implements Serializable {
     public Produit(String nom, String reference, String description, double prixHt, int quantite) {
         this.nom = nom;
         this.reference = reference;
-        this.description = description; // Initialisation de la description
+        this.description = description;
         this.prixHt = prixHt;
         this.quantite = quantite;
-        this.id = 0; // Initialisé à 0 pour un nouveau produit non encore inséré en BDD
+        this.id = 0;
     }
 
-    // Constructeur pour un produit existant (avec ID, utilisé lors du chargement depuis la BDD)
+    // Constructeur pour un produit existant (avec ID, utilisé lors du chargement
+    // depuis la BDD)
+
     public Produit(int id, String nom, String reference, String description, double prixHt, int quantite) {
-        this(nom, reference, description, prixHt, quantite); // Appelle le constructeur précédent
+        this(nom, reference, description, prixHt, quantite);
         this.id = id;
     }
 
@@ -44,7 +45,7 @@ public abstract class Produit implements Serializable {
         return reference;
     }
 
-    public String getDescription() { // NOUVEAU: Getter pour la description
+    public String getDescription() {
         return description;
     }
 
@@ -69,7 +70,7 @@ public abstract class Produit implements Serializable {
         this.reference = reference;
     }
 
-    public void setDescription(String description) { // NOUVEAU: Setter pour la description
+    public void setDescription(String description) {
         this.description = description;
     }
 
@@ -82,19 +83,23 @@ public abstract class Produit implements Serializable {
     }
 
     // Méthode abstraite pour calculer le Prix TTC
-    // Les sous-classes devront implémenter cette méthode, potentiellement en utilisant TAUX_TVA_STANDARD
+    // Les sous-classes devront implémenter cette méthode, potentiellement en
+    // utilisant TAUX_TVA_STANDARD
     public abstract double calculerPrixTTC();
 
     @Override
     public String toString() {
-        return "ID: " + id + ", Nom: " + nom + ", Ref: " + reference + ", Desc: " + description + ", Prix HT: " + String.format("%.2f", prixHt) + ", Qte: " + quantite;
+        return "ID: " + id + ", Nom: " + nom + ", Ref: " + reference + ", Desc: " + description + ", Prix HT: "
+                + String.format("%.2f", prixHt) + ", Qte: " + quantite;
     }
 
     // Méthode pour vérifier si deux produits sont égaux (basé sur la référence)
     @Override
     public boolean equals(Object obj) {
-        if (this == obj) return true;
-        if (obj == null || getClass() != obj.getClass()) return false; // Important: getClass() pour la hiérarchie
+        if (this == obj)
+            return true;
+        if (obj == null || getClass() != obj.getClass())
+            return false;
         Produit other = (Produit) obj;
         return this.reference.equals(other.reference);
     }

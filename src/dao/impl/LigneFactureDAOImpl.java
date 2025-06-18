@@ -2,7 +2,7 @@ package dao.impl;
 
 import dao.DatabaseManager;
 import dao.LigneFactureDAO;
-import dao.ProduitDAO; // Pour charger l'objet Produit
+import dao.ProduitDAO;
 import model.LigneFacture;
 import model.Produit;
 
@@ -12,7 +12,7 @@ import java.util.List;
 
 public class LigneFactureDAOImpl implements LigneFactureDAO {
 
-    private ProduitDAO produitDAO; // Nécessaire pour construire l'objet LigneFacture complet
+    private ProduitDAO produitDAO;
 
     public LigneFactureDAOImpl(ProduitDAO produitDAO) {
         this.produitDAO = produitDAO;
@@ -27,7 +27,7 @@ public class LigneFactureDAOImpl implements LigneFactureDAO {
 
         try {
             conn = DatabaseManager.getConnection();
-            pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS); // Ajout pour le cas où elle est appelée seule
+            pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
 
             pstmt.setInt(1, ligneFacture.getIdFacture());
             pstmt.setInt(2, ligneFacture.getProduit().getId());
@@ -39,7 +39,7 @@ public class LigneFactureDAOImpl implements LigneFactureDAO {
             if (rowsAffected > 0) {
                 rs = pstmt.getGeneratedKeys();
                 if (rs.next()) {
-                    ligneFacture.setId(rs.getInt(1)); // Définit l'ID de la ligne si généré
+                    ligneFacture.setId(rs.getInt(1));
                 }
                 return true;
             }
@@ -71,7 +71,7 @@ public class LigneFactureDAOImpl implements LigneFactureDAO {
                 double sousTotal = rs.getDouble("sous_total");
 
                 // Charger le produit associé
-                Produit produit = produitDAO.findProduitById(idProduit); // Utilise le DAO produit
+                Produit produit = produitDAO.findProduitById(idProduit);
 
                 LigneFacture ligne = new LigneFacture(idLigne, idFacture, produit, quantite, prixUnitaire, sousTotal);
                 lignes.add(ligne);

@@ -25,7 +25,7 @@ public class ProduitDAOImpl implements ProduitDAO {
         try {
             conn = DatabaseManager.getConnection();
             pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
-            
+
             pstmt.setString(1, produit.getReference());
             pstmt.setString(2, produit.getNom());
             pstmt.setString(3, produit.getDescription());
@@ -45,7 +45,8 @@ public class ProduitDAOImpl implements ProduitDAO {
                 pstmt.setNull(8, Types.BOOLEAN);
                 pstmt.setString(9, parapharmacie.getCategorie());
             } else {
-                throw new IllegalArgumentException("Type de produit inconnu ou non supporté pour l'insertion: " + produit.getClass().getName());
+                throw new IllegalArgumentException(
+                        "Type de produit inconnu ou non supporté pour l'insertion: " + produit.getClass().getName());
             }
 
             int rowsAffected = pstmt.executeUpdate();
@@ -138,7 +139,7 @@ public class ProduitDAOImpl implements ProduitDAO {
         try {
             conn = DatabaseManager.getConnection();
             pstmt = conn.prepareStatement(sql);
-            
+
             pstmt.setString(1, produit.getNom());
             pstmt.setString(2, produit.getDescription());
             pstmt.setDouble(3, produit.getPrixHt());
@@ -157,7 +158,8 @@ public class ProduitDAOImpl implements ProduitDAO {
                 pstmt.setNull(7, Types.BOOLEAN);
                 pstmt.setString(8, parapharmacie.getCategorie());
             } else {
-                throw new IllegalArgumentException("Type de produit inconnu ou non supporté pour la mise à jour: " + produit.getClass().getName());
+                throw new IllegalArgumentException(
+                        "Type de produit inconnu ou non supporté pour la mise à jour: " + produit.getClass().getName());
             }
             pstmt.setString(9, produit.getReference());
 
@@ -204,7 +206,6 @@ public class ProduitDAOImpl implements ProduitDAO {
     @Override
     public List<Produit> rechercherProduits(String critere) throws SQLException {
         List<Produit> produits = new ArrayList<>();
-        // Recherche par nom ou référence (case-insensitive)
         String sql = "SELECT id_produit, reference, nom, description, prix_ht, quantite, type_produit, est_generique, est_sur_ordonnance, categorie_parapharmacie FROM Produits WHERE nom LIKE ? OR reference LIKE ?";
         Connection conn = null;
         PreparedStatement pstmt = null;
@@ -212,14 +213,11 @@ public class ProduitDAOImpl implements ProduitDAO {
         try {
             conn = DatabaseManager.getConnection();
             pstmt = conn.prepareStatement(sql);
-            // Ajoute des jokers '%' pour la recherche partielle et passe le critère en minuscules (si la BDD n'est pas configurée pour une recherche insensible à la casse par défaut,
-            // il faudrait utiliser LOWER(nom) LIKE LOWER(?) ou le faire côté Java si les données sont petites)
-            // Pour MySQL, LIKE est souvent insensible à la casse par défaut, mais ce n'est pas garanti pour toutes les configurations/DBs.
             pstmt.setString(1, "%" + critere + "%");
             pstmt.setString(2, "%" + critere + "%");
             rs = pstmt.executeQuery();
             while (rs.next()) {
-                produits.add(createProduitFromResultSet(rs)); // Utilise la méthode utilitaire
+                produits.add(createProduitFromResultSet(rs));
             }
         } finally {
             DatabaseManager.close(conn, pstmt, rs);
@@ -239,12 +237,14 @@ public class ProduitDAOImpl implements ProduitDAO {
         if ("Medicament".equals(typeProduit)) {
             boolean estGenerique = rs.getBoolean("est_generique");
             boolean estSurOrdonnance = rs.getBoolean("est_sur_ordonnance");
-            return new Medicament(idProduit, nom, reference, description, prixHT, quantite, estGenerique, estSurOrdonnance);
+            return new Medicament(idProduit, nom, reference, description, prixHT, quantite, estGenerique,
+                    estSurOrdonnance);
         } else if ("Parapharmacie".equals(typeProduit)) {
             String categorie = rs.getString("categorie_parapharmacie");
             return new ProduitParaPharmacie(idProduit, nom, reference, description, prixHT, quantite, categorie);
         } else {
-            throw new SQLException("Type de produit inconnu dans la base de données pour la référence " + reference + ": " + typeProduit);
+            throw new SQLException("Type de produit inconnu dans la base de données pour la référence " + reference
+                    + ": " + typeProduit);
         }
     }
 }

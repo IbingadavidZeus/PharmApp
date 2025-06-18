@@ -5,11 +5,11 @@ import model.Utilisateur;
 
 import javax.swing.*;
 import java.awt.*;
-import java.util.Arrays; 
+import java.util.Arrays;
 
 public class LoginPanel extends JPanel {
     private Pharmacie pharmacie;
-    private LoginListener listener; 
+    private LoginListener listener;
     private JTextField usernameField;
     private JPasswordField passwordField;
     private JButton loginButton;
@@ -31,11 +31,11 @@ public class LoginPanel extends JPanel {
         titleLabel.setFont(new Font("Arial", Font.BOLD, 24));
         gbc.gridx = 0;
         gbc.gridy = 0;
-        gbc.gridwidth = 2; 
+        gbc.gridwidth = 2;
         add(titleLabel, gbc);
 
         // Nom d'utilisateur
-        gbc.gridwidth = 1; 
+        gbc.gridwidth = 1;
         gbc.gridx = 0;
         gbc.gridy = 1;
         gbc.anchor = GridBagConstraints.EAST;
@@ -43,7 +43,7 @@ public class LoginPanel extends JPanel {
 
         gbc.gridx = 1;
         gbc.gridy = 1;
-        gbc.anchor = GridBagConstraints.WEST; 
+        gbc.anchor = GridBagConstraints.WEST;
         usernameField = new JTextField(20);
         add(usernameField, gbc);
 
@@ -62,7 +62,7 @@ public class LoginPanel extends JPanel {
         // Bouton de connexion
         gbc.gridx = 0;
         gbc.gridy = 3;
-        gbc.gridwidth = 2; 
+        gbc.gridwidth = 2;
         gbc.anchor = GridBagConstraints.CENTER;
         loginButton = new JButton("Se connecter");
         loginButton.addActionListener(_ -> attemptLogin());
@@ -75,15 +75,15 @@ public class LoginPanel extends JPanel {
         add(messageLabel, gbc);
     }
 
-    private void attemptLogin() { 
+    private void attemptLogin() {
         String username = usernameField.getText();
-        char[] passwordChars = passwordField.getPassword(); 
-        String plainPassword = new String(passwordChars); 
+        char[] passwordChars = passwordField.getPassword();
+        String plainPassword = new String(passwordChars);
 
         Utilisateur user = null;
         try {
-            user = pharmacie.authentifier(username, plainPassword); 
-            
+            user = pharmacie.authentifier(username, plainPassword);
+
             if (user != null) {
                 messageLabel.setText("Connexion réussie !");
                 messageLabel.setForeground(Color.GREEN);
@@ -93,15 +93,15 @@ public class LoginPanel extends JPanel {
             } else {
                 messageLabel.setText("Nom d'utilisateur ou mot de passe incorrect.");
                 messageLabel.setForeground(Color.RED);
-                passwordField.setText(""); 
+                passwordField.setText("");
             }
-        } catch (Exception e) { 
+        } catch (Exception e) {
             messageLabel.setText("Une erreur inattendue est survenue: " + e.getMessage());
             messageLabel.setForeground(Color.RED);
             e.printStackTrace();
         } finally {
             if (passwordChars != null) {
-                Arrays.fill(passwordChars, ' '); 
+                Arrays.fill(passwordChars, ' ');
             }
         }
     }
