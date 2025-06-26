@@ -17,7 +17,7 @@ public interface ProduitDAO {
     boolean mettreAJourProduit(Produit produit) throws SQLException;
 
     boolean supprimerProduit(String reference) throws SQLException;
-
+    
     boolean mettreAJourQuantite(String reference, int nouvelleQuantite) throws SQLException;
 
     List<Produit> rechercherProduits(String critere) throws SQLException;

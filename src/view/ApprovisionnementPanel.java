@@ -39,7 +39,7 @@ public class ApprovisionnementPanel extends JPanel {
         JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         searchField = new JTextField(25);
         searchButton = new JButton("Rechercher Produit");
-        searchButton.addActionListener(_ -> searchProducts());
+        searchButton.addActionListener(e -> searchProducts());
         searchPanel.add(new JLabel("Rechercher (Nom/Référence):"));
         searchPanel.add(searchField);
         searchPanel.add(searchButton);
@@ -110,7 +110,7 @@ public class ApprovisionnementPanel extends JPanel {
         addSupplyButton.setFont(new Font("Arial", Font.BOLD, 16));
         addSupplyButton.setBackground(new Color(50, 150, 200));
         addSupplyButton.setForeground(Color.WHITE);
-        addSupplyButton.addActionListener(_ -> addSupply());
+        addSupplyButton.addActionListener(e -> addSupply());
         bottomPanel.add(addSupplyButton, gbc);
         row++;
 

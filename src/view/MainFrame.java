@@ -8,7 +8,6 @@ import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.util.Objects;
-import java.awt.Toolkit;
 
 // Interface pour notifier MainFrame des événements de connexion
 interface LoginListener {
@@ -147,36 +146,36 @@ public class MainFrame extends JFrame implements LoginListener, PharmacieDataLis
 
         JMenu homeMenu = new JMenu("Accueil");
         JMenuItem homeItem = new JMenuItem("Accueil Principal");
-        homeItem.addActionListener(_ -> showCard("Welcome"));
+        homeItem.addActionListener(e -> showCard("Welcome"));
         homeMenu.add(homeItem);
         menuBar.add(homeMenu);
 
         JMenu gestionMenu = new JMenu("Gestion");
         if ("admin".equalsIgnoreCase(role)) {
             JMenuItem gererUtilisateursItem = new JMenuItem("Gérer Utilisateurs");
-            gererUtilisateursItem.addActionListener(_ -> showCard("GererUtilisateurs"));
+            gererUtilisateursItem.addActionListener(e -> showCard("GererUtilisateurs"));
             gestionMenu.add(gererUtilisateursItem);
 
             JMenuItem approvisionnementItem = new JMenuItem("Approvisionner Stock");
-            approvisionnementItem.addActionListener(_ -> showCard("Approvisionnement"));
+            approvisionnementItem.addActionListener(e -> showCard("Approvisionnement"));
             gestionMenu.add(approvisionnementItem);
         }
 
         JMenuItem ajouterProduitItem = new JMenuItem("Ajouter Produit");
-        ajouterProduitItem.addActionListener(_ -> showCard("AjouterProduit"));
+        ajouterProduitItem.addActionListener(e -> showCard("AjouterProduit"));
         gestionMenu.add(ajouterProduitItem);
 
         JMenuItem voirStockItem = new JMenuItem("Voir Stock");
-        voirStockItem.addActionListener(_ -> showCard("Stock"));
+        voirStockItem.addActionListener(e -> showCard("Stock"));
         gestionMenu.add(voirStockItem);
 
         JMenu venteMenu = new JMenu("Vente");
         JMenuItem effectuerVenteItem = new JMenuItem("Effectuer une Vente");
-        effectuerVenteItem.addActionListener(_ -> showCard("Vente"));
+        effectuerVenteItem.addActionListener(e -> showCard("Vente"));
         venteMenu.add(effectuerVenteItem);
 
         JMenuItem historiqueVentesItem = new JMenuItem("Historique des Ventes");
-        historiqueVentesItem.addActionListener(_ -> showCard("HistoriqueVentes"));
+        historiqueVentesItem.addActionListener(e -> showCard("HistoriqueVentes"));
         venteMenu.add(historiqueVentesItem);
 
         menuBar.add(gestionMenu);
@@ -184,13 +183,13 @@ public class MainFrame extends JFrame implements LoginListener, PharmacieDataLis
 
         JMenu pharmacieMenu = new JMenu("Pharmacie");
         JMenuItem infoPharmacieItem = new JMenuItem("Informations Pharmacie");
-        infoPharmacieItem.addActionListener(_ -> showCard("Info"));
+        infoPharmacieItem.addActionListener(e -> showCard("Info"));
         pharmacieMenu.add(infoPharmacieItem);
         menuBar.add(pharmacieMenu);
 
         JMenu logoutMenu = new JMenu("Session");
         JMenuItem logoutItem = new JMenuItem("Déconnexion");
-        logoutItem.addActionListener(_ -> {
+        logoutItem.addActionListener(e -> {
             int confirm = JOptionPane.showConfirmDialog(this, "Voulez-vous vraiment vous déconnecter ?", "Déconnexion",
                     JOptionPane.YES_NO_OPTION);
             if (confirm == JOptionPane.YES_OPTION) {

@@ -1,15 +1,13 @@
 package dao;
 
 import model.LigneFacture;
+import java.sql.Connection; 
 import java.sql.SQLException;
 import java.util.List;
-import model.Facture;
-import model.Utilisateur;
 
 public interface LigneFactureDAO {
-
+    boolean ajouterLigneFacture(Connection conn, LigneFacture ligneFacture) throws SQLException;
     boolean ajouterLigneFacture(LigneFacture ligneFacture) throws SQLException;
-
     List<LigneFacture> getLignesFactureByFactureId(int idFacture) throws SQLException;
 
     LigneFacture getLigneFactureById(int id) throws SQLException;

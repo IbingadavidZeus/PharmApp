@@ -59,12 +59,15 @@ public class VentePanel extends JPanel {
         JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         searchField = new JTextField(25);
         searchButton = new JButton("Rechercher Produit");
-        searchButton.addActionListener(_ -> {
+        searchButton.addActionListener(e -> {
             try {
                 searchProducts();
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
+            } catch (SQLException ex) {
+            JOptionPane.showMessageDialog(this,
+                    "Erreur lors du chargement des produits depuis la base de données: " + ex.getMessage(),
+                    "Erreur de Base de Données", JOptionPane.ERROR_MESSAGE);
+            ex.printStackTrace();
+        }
         });
         searchPanel.add(new JLabel("Rechercher (Nom/Référence):"));
         searchPanel.add(searchField);
@@ -91,7 +94,7 @@ public class VentePanel extends JPanel {
         quantityToAddField = new JTextField("1", 5);
         addToCartPanel.add(quantityToAddField);
         addToCartButton = new JButton("Ajouter au Panier");
-        addToCartButton.addActionListener(_ -> addSelectedProductToCart());
+        addToCartButton.addActionListener(e -> addSelectedProductToCart());
         addToCartPanel.add(addToCartButton);
         productSelectionPanel.add(addToCartPanel, BorderLayout.SOUTH);
 
@@ -112,9 +115,9 @@ public class VentePanel extends JPanel {
 
         JPanel cartActionsPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
         removeFromCartButton = new JButton("Retirer Sélection");
-        removeFromCartButton.addActionListener(_ -> removeSelectedProductFromCart());
+        removeFromCartButton.addActionListener(e -> removeSelectedProductFromCart());
         clearCartButton = new JButton("Vider Panier");
-        clearCartButton.addActionListener(_ -> clearCart());
+        clearCartButton.addActionListener(e -> clearCart());
         cartActionsPanel.add(removeFromCartButton);
         cartActionsPanel.add(clearCartButton);
         cartPanel.add(cartActionsPanel, BorderLayout.SOUTH);
@@ -150,7 +153,7 @@ public class VentePanel extends JPanel {
         gbc.gridy = row;
         gbc.anchor = GridBagConstraints.WEST;
         montantDonneField = new JTextField(10);
-        montantDonneField.addActionListener(_ -> calculateChange());
+        montantDonneField.addActionListener(e -> calculateChange());
         checkoutPanel.add(montantDonneField, gbc);
         row++;
 
@@ -175,7 +178,7 @@ public class VentePanel extends JPanel {
         finaliserVenteButton.setFont(new Font("Arial", Font.BOLD, 18));
         finaliserVenteButton.setBackground(new Color(0, 150, 0));
         finaliserVenteButton.setForeground(Color.WHITE);
-        finaliserVenteButton.addActionListener(_ -> finalizeSale());
+        finaliserVenteButton.addActionListener(e -> finalizeSale());
         checkoutPanel.add(finaliserVenteButton, gbc);
         row++;
 

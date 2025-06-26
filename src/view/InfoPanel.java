@@ -76,7 +76,7 @@ public class InfoPanel extends JPanel {
         gbc.gridwidth = 2;
         gbc.anchor = GridBagConstraints.CENTER;
         enregistrerButton = new JButton("Enregistrer les modifications");
-        enregistrerButton.addActionListener(_ -> enregistrerModifications());
+        enregistrerButton.addActionListener(e -> enregistrerModifications());
         add(enregistrerButton, gbc);
         row++;
 

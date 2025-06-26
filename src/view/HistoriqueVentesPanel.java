@@ -66,11 +66,11 @@ public class HistoriqueVentesPanel extends JPanel {
         filterPanel.add(utilisateurFilterComboBox);
 
         filterButton = new JButton("Filtrer");
-        filterButton.addActionListener(_ -> applyFilter());
+        filterButton.addActionListener(e -> applyFilter());
         filterPanel.add(filterButton);
 
         resetButton = new JButton("Réinitialiser Filtres");
-        resetButton.addActionListener(_ -> resetFilters());
+        resetButton.addActionListener(e -> resetFilters());
         filterPanel.add(resetButton);
 
         add(filterPanel, BorderLayout.NORTH);
@@ -95,7 +95,7 @@ public class HistoriqueVentesPanel extends JPanel {
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
 
         viewDetailsButton = new JButton("Voir Détails Facture");
-        viewDetailsButton.addActionListener(_ -> viewFactureDetails());
+        viewDetailsButton.addActionListener(e -> viewFactureDetails());
         buttonPanel.add(viewDetailsButton);
 
         bottomPanel.add(buttonPanel, BorderLayout.NORTH);

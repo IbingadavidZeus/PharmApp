@@ -47,11 +47,11 @@ public class StockPanel extends JPanel {
         JPanel controlPanel = new JPanel(new BorderLayout());
         JPanel buttonRowPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
         JButton refreshButton = new JButton("Rafraîchir le stock");
-        refreshButton.addActionListener(_ -> remplirTable());
+        refreshButton.addActionListener(e -> remplirTable());
         buttonRowPanel.add(refreshButton);
 
         JButton deleteButton = new JButton("Supprimer Produit Sélectionné");
-        deleteButton.addActionListener(_ -> {
+        deleteButton.addActionListener(e -> {
             int selectedRow = productTable.getSelectedRow();
             if (selectedRow != -1) {
                 String referenceToDelete = (String) tableModel.getValueAt(selectedRow, 1);

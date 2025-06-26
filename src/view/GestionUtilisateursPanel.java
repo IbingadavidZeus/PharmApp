@@ -109,13 +109,13 @@ public class GestionUtilisateursPanel extends JPanel {
 
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 0));
         addButton = new JButton("Ajouter");
-        addButton.addActionListener(_ -> addUser());
+        addButton.addActionListener(e -> addUser());
         updateButton = new JButton("Modifier");
-        updateButton.addActionListener(_ -> updateUser());
+        updateButton.addActionListener(e -> updateUser());
         deleteButton = new JButton("Supprimer");
-        deleteButton.addActionListener(_ -> deleteUser());
+        deleteButton.addActionListener(e -> deleteUser());
         clearButton = new JButton("Vider Champs");
-        clearButton.addActionListener(_ -> clearFields());
+        clearButton.addActionListener(e -> clearFields());
 
         buttonPanel.add(addButton);
         buttonPanel.add(updateButton);

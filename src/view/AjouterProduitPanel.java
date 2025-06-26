@@ -162,7 +162,7 @@ public class AjouterProduitPanel extends JPanel {
         typeSelectionPanel.add(new JLabel("Type de Produit:"));
         typeProduitComboBox = new JComboBox<>(new String[] { "MEDICAMENT", "PARAPHARMACIE" });
         typeProduitComboBox.setPreferredSize(new Dimension(200, 30));
-        typeProduitComboBox.addActionListener(_ -> updateTypeSpecificFields());
+        typeProduitComboBox.addActionListener(e -> updateTypeSpecificFields());
         typeSelectionPanel.add(typeProduitComboBox);
 
         gbc.gridy = 1;
@@ -225,14 +225,14 @@ public class AjouterProduitPanel extends JPanel {
         ajouterButton.setFont(new Font("Arial", Font.BOLD, 16));
         ajouterButton.setBackground(new Color(60, 179, 113));
         ajouterButton.setForeground(Color.WHITE);
-        ajouterButton.addActionListener(_ -> addProduct());
+        ajouterButton.addActionListener(e -> addProduct());
         buttonPanel.add(ajouterButton);
 
         resetButton = new JButton("Réinitialiser");
         resetButton.setFont(new Font("Arial", Font.PLAIN, 14));
         resetButton.setBackground(new Color(255, 165, 0));
         resetButton.setForeground(Color.WHITE);
-        resetButton.addActionListener(_ -> resetFields());
+        resetButton.addActionListener(e -> resetFields());
         buttonPanel.add(resetButton);
 
         bottomPanel.add(buttonPanel, BorderLayout.NORTH);

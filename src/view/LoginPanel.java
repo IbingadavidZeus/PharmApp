@@ -65,7 +65,7 @@ public class LoginPanel extends JPanel {
         gbc.gridwidth = 2;
         gbc.anchor = GridBagConstraints.CENTER;
         loginButton = new JButton("Se connecter");
-        loginButton.addActionListener(_ -> attemptLogin());
+        loginButton.addActionListener(e -> attemptLogin());
         add(loginButton, gbc);
 
         // Message label

@@ -172,4 +172,10 @@ public class LigneFactureDAOImpl implements LigneFactureDAO {
             DatabaseManager.close(conn, pstmt);
         }
     }
+
+    @Override
+    public boolean ajouterLigneFacture(Connection conn, LigneFacture ligneFacture) throws SQLException {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'ajouterLigneFacture'");
+    }
 }
