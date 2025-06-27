@@ -4,12 +4,14 @@ import dao.FactureDAO;
 import dao.LigneFactureDAO;
 import dao.ProduitDAO;
 import dao.UtilisateurDAO;
-import dao.AssuranceSocialDAO; // Nouveau: Import
+import dao.AssuranceSocialDAO;
 import dao.impl.FactureDAOImpl;
 import dao.impl.LigneFactureDAOImpl;
 import dao.impl.ProduitDAOImpl;
 import dao.impl.UtilisateurDAOImpl;
-import dao.impl.AssuranceSocialDAOImpl; // Nouveau: Import
+import dao.impl.AssuranceSocialDAOImpl;
+import dao.impl.AssuranceSociale;
+
 import java.io.*;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
@@ -21,12 +23,11 @@ public class Pharmacie implements Serializable {
     private String nom;
     private String adresse;
 
-    // Dépendances DAO (non sérialisables, initialisées au démarrage ou par injection)
     private transient ProduitDAO produitDAO;
     private transient UtilisateurDAO utilisateurDAO;
     private transient FactureDAO factureDAO;
     private transient LigneFactureDAO ligneFactureDAO;
-    private transient AssuranceSocialDAO AssuranceSocialDAO; 
+    private transient AssuranceSocialDAO AssuranceSocialDAO;
 
     public Pharmacie(String nom, String adresse) {
         this.nom = nom;
@@ -34,23 +35,19 @@ public class Pharmacie implements Serializable {
         initDAOs();
     }
 
-    // Méthode pour initialiser les DAOs
     private void initDAOs() {
         this.produitDAO = new ProduitDAOImpl();
         this.utilisateurDAO = new UtilisateurDAOImpl();
         this.ligneFactureDAO = new LigneFactureDAOImpl(produitDAO);
-        this.AssuranceSocialDAO = new AssuranceSocialDAOImpl(); // NOUVEAU: Initialisation
-        // NOUVEAU: Passer produitDAO ET assuranceSocialeDAO au constructeur de FactureDAOImpl
+        this.AssuranceSocialDAO = new AssuranceSocialDAOImpl();
         this.factureDAO = new FactureDAOImpl(utilisateurDAO, ligneFactureDAO, produitDAO, AssuranceSocialDAO);
     }
 
-    // Gère la désérialisation: réinitialise les transients DAOs
     private void readObject(ObjectInputStream ois) throws IOException, ClassNotFoundException {
         ois.defaultReadObject();
         initDAOs();
     }
 
-    // --- Getters et Setters pour les informations de la pharmacie ---
     public String getNom() {
         return nom;
     }
@@ -67,7 +64,6 @@ public class Pharmacie implements Serializable {
         this.adresse = adresse;
     }
 
-    // --- Méthodes pour la gestion des produits (délèguent à ProduitDAO) ---
     public boolean ajouterProduit(Produit produit) throws SQLException {
         return produitDAO.ajouterProduit(produit);
     }
@@ -89,8 +85,8 @@ public class Pharmacie implements Serializable {
             return null;
         }
     }
-    
-    public Produit getProduitById(int id) { // Ajout si utile
+
+    public Produit getProduitById(int id) {
         try {
             return produitDAO.findProduitById(id);
         } catch (SQLException e) {
@@ -100,11 +96,10 @@ public class Pharmacie implements Serializable {
         }
     }
 
-
     public List<Produit> getProduits() throws SQLException {
         return produitDAO.getAllProduits();
     }
-    
+
     public List<Produit> rechercherProduits(String critere) throws SQLException {
         return produitDAO.rechercherProduits(critere);
     }
@@ -135,9 +130,6 @@ public class Pharmacie implements Serializable {
         }
         return valeurTotale;
     }
-
-
-    // --- Méthodes pour l'authentification et la gestion des utilisateurs (délèguent à UtilisateurDAO) ---
 
     public Utilisateur authentifier(String nomUtilisateur, String motDePasse) {
         try {
@@ -180,12 +172,10 @@ public class Pharmacie implements Serializable {
         return utilisateurDAO.getUtilisateurById(id);
     }
 
-    // --- Méthodes pour la finalisation des ventes (délèguent à FactureDAO) ---
     public boolean finaliserVente(Facture facture) throws SQLException {
         return factureDAO.ajouterFacture(facture);
     }
 
-    // Méthodes pour accéder aux factures via la classe Pharmacie
     public List<Facture> getAllFactures() throws SQLException {
         return factureDAO.getAllFactures();
     }
@@ -202,7 +192,14 @@ public class Pharmacie implements Serializable {
         return factureDAO.getFactureById(id);
     }
 
-    // NOUVEAU: Méthodes pour accéder aux Assurances Sociales
+    public List<AssuranceSocial> getAllAssurancesSocial() throws SQLException {
+        return AssuranceSocialDAO.getAllAssurances();
+    }
+
+    public AssuranceSocial getAssuranceSocialById(int id) throws SQLException {
+        return AssuranceSocialDAO.getAssuranceById(id);
+    }
+
     public List<AssuranceSocial> getAllAssurancesSociales() throws SQLException {
         return AssuranceSocialDAO.getAllAssurances();
     }
@@ -211,7 +208,22 @@ public class Pharmacie implements Serializable {
         return AssuranceSocialDAO.getAssuranceById(id);
     }
 
-    // --- Méthodes de sauvegarde et chargement (pour les propriétés de la Pharmacie) ---
+    public AssuranceSocial getAssuranceSocialByName(String name) throws SQLException {
+        return AssuranceSocialDAO.getAssuranceByName(name);
+    }
+
+    public boolean ajouterAssuranceSocial(AssuranceSocial assurance) throws SQLException {
+        return AssuranceSocialDAO.ajouterAssurance(assurance);
+    }
+
+    public boolean mettreAJourAssuranceSocial(AssuranceSocial assurance) throws SQLException {
+        return AssuranceSocialDAO.mettreAJourAssurance(assurance);
+    }
+
+    public boolean supprimerAssuranceSocial(int id) throws SQLException {
+        return AssuranceSocialDAO.supprimerAssurance(id);
+    }
+
     public void sauvegarderDansFichier(String nomFichier) {
         try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(nomFichier))) {
             oos.writeObject(this);
