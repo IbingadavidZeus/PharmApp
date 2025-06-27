@@ -11,8 +11,13 @@ import dao.impl.ProduitDAOImpl;
 import dao.impl.UtilisateurDAOImpl;
 import dao.impl.AssuranceSocialDAOImpl;
 import dao.impl.AssuranceSociale;
+import dao.CompteComptableDAO;
+import dao.TransactionComptableDAO;
+import dao.impl.TransactionComptableDAOImpl;
+import dao.impl.CompteComptableDAOImpl;
 
 import java.io.*;
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -28,6 +33,9 @@ public class Pharmacie implements Serializable {
     private transient FactureDAO factureDAO;
     private transient LigneFactureDAO ligneFactureDAO;
     private transient AssuranceSocialDAO AssuranceSocialDAO;
+    private transient CompteComptableDAO compteComptableDAO;
+    private transient TransactionComptableDAO transactionComptableDAO;
+
 
     public Pharmacie(String nom, String adresse) {
         this.nom = nom;
@@ -41,6 +49,8 @@ public class Pharmacie implements Serializable {
         this.ligneFactureDAO = new LigneFactureDAOImpl(produitDAO);
         this.AssuranceSocialDAO = new AssuranceSocialDAOImpl();
         this.factureDAO = new FactureDAOImpl(utilisateurDAO, ligneFactureDAO, produitDAO, AssuranceSocialDAO);
+        this.compteComptableDAO = new CompteComptableDAOImpl(); 
+        this.transactionComptableDAO = new TransactionComptableDAOImpl(compteComptableDAO); 
     }
 
     private void readObject(ObjectInputStream ois) throws IOException, ClassNotFoundException {
@@ -223,7 +233,49 @@ public class Pharmacie implements Serializable {
     public boolean supprimerAssuranceSocial(int id) throws SQLException {
         return AssuranceSocialDAO.supprimerAssurance(id);
     }
+    public List<CompteComptable> getAllComptesComptables() throws SQLException {
+        return compteComptableDAO.getAllComptes();
+    }
 
+    public CompteComptable getCompteComptableById(int id) throws SQLException {
+        return compteComptableDAO.getCompteById(id);
+    }
+
+    public CompteComptable getCompteComptableByNumero(String numeroCompte) throws SQLException {
+        return compteComptableDAO.getCompteByNumero(numeroCompte);
+    }
+
+    public boolean ajouterCompteComptable(CompteComptable compte) throws SQLException {
+        return compteComptableDAO.addCompte(compte);
+    }
+
+    public boolean mettreAJourCompteComptable(CompteComptable compte) throws SQLException {
+        return compteComptableDAO.updateCompte(compte);
+    }
+
+    public boolean supprimerCompteComptable(int id) throws SQLException {
+        return compteComptableDAO.deleteCompte(id);
+    }
+
+    public boolean ajouterTransactionComptable(TransactionComptable transaction) throws SQLException {
+        return transactionComptableDAO.addTransaction(transaction);
+    }
+    public boolean ajouterTransactionComptable(Connection conn, TransactionComptable transaction) throws SQLException {
+        return transactionComptableDAO.addTransaction(conn, transaction);
+    }
+    public List<TransactionComptable> getAllTransactionsComptables() throws SQLException {
+        return transactionComptableDAO.getAllTransactions();
+    }
+    public List<TransactionComptable> getTransactionsComptablesByCompte(int idCompte) throws SQLException {
+        return transactionComptableDAO.getTransactionsByCompte(idCompte);
+    }
+    public List<TransactionComptable> getTransactionsComptablesByDateRange(LocalDateTime startDate, LocalDateTime endDate) throws SQLException {
+        return transactionComptableDAO.getTransactionsByDateRange(startDate, endDate);
+    }
+
+    public List<TransactionComptable> getTransactionsComptablesBySourceType(String sourceType) throws SQLException {
+        return transactionComptableDAO.getTransactionsBySourceType(sourceType);
+    }
     public void sauvegarderDansFichier(String nomFichier) {
         try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(nomFichier))) {
             oos.writeObject(this);
