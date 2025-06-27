@@ -16,7 +16,7 @@ public class CompteComptableDAOImpl implements CompteComptableDAO {
 
     @Override
     public CompteComptable getCompteById(int id) throws SQLException {
-        String sql = "SELECT id_compte, numero_compte, nom_compte, type_compte, description FROM comptes_comptables WHERE id_compte = ?";
+        String sql = "SELECT id_compte, numero_compte, nom_compte, type_compte, description_compte FROM comptes_comptables WHERE id_compte = ?";
         Connection conn = null;
         PreparedStatement pstmt = null;
         ResultSet rs = null;
@@ -36,7 +36,7 @@ public class CompteComptableDAOImpl implements CompteComptableDAO {
 
     @Override
     public CompteComptable getCompteByNumero(String numeroCompte) throws SQLException {
-        String sql = "SELECT id_compte, numero_compte, nom_compte, type_compte, description FROM comptes_comptables WHERE numero_compte = ?";
+        String sql = "SELECT id_compte, numero_compte, nom_compte, type_compte, description_compte FROM comptes_comptables WHERE numero_compte = ?";
         Connection conn = null;
         PreparedStatement pstmt = null;
         ResultSet rs = null;
@@ -57,7 +57,7 @@ public class CompteComptableDAOImpl implements CompteComptableDAO {
     @Override
     public List<CompteComptable> getAllComptes() throws SQLException {
         List<CompteComptable> comptes = new ArrayList<>();
-        String sql = "SELECT id_compte, numero_compte, nom_compte, type_compte, description FROM comptes_comptables ORDER BY numero_compte";
+        String sql = "SELECT id_compte, numero_compte, nom_compte, type_compte, description_compte FROM comptes_comptables ORDER BY numero_compte";
         Connection conn = null;
         Statement stmt = null;
         ResultSet rs = null;
@@ -76,7 +76,7 @@ public class CompteComptableDAOImpl implements CompteComptableDAO {
 
     @Override
     public boolean addCompte(CompteComptable compte) throws SQLException {
-        String sql = "INSERT INTO comptes_comptables (numero_compte, nom_compte, type_compte, description) VALUES (?, ?, ?, ?)";
+        String sql = "INSERT INTO comptes_comptables (numero_compte, nom_compte, type_compte, description_compte) VALUES (?, ?, ?, ?)";
         Connection conn = null;
         PreparedStatement pstmt = null;
         ResultSet rs = null;
@@ -103,7 +103,7 @@ public class CompteComptableDAOImpl implements CompteComptableDAO {
 
     @Override
     public boolean updateCompte(CompteComptable compte) throws SQLException {
-        String sql = "UPDATE comptes_comptables SET numero_compte = ?, nom_compte = ?, type_compte = ?, description = ? WHERE id_compte = ?";
+        String sql = "UPDATE comptes_comptables SET numero_compte = ?, nom_compte = ?, type_compte = ?, description_compte = ? WHERE id_compte = ?";
         Connection conn = null;
         PreparedStatement pstmt = null;
         try {
@@ -141,7 +141,7 @@ public class CompteComptableDAOImpl implements CompteComptableDAO {
         String numeroCompte = rs.getString("numero_compte");
         String nomCompte = rs.getString("nom_compte");
         String typeCompte = rs.getString("type_compte");
-        String description = rs.getString("description");
+        String description = rs.getString("description_compte");
         return new CompteComptable(id, numeroCompte, nomCompte, typeCompte, description);
     }
 }

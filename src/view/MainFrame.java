@@ -28,6 +28,7 @@ public class MainFrame extends JFrame implements LoginListener, PharmacieDataLis
     private AjouterProduitPanel ajouterProduitPanel;
     private StockPanel stockPanel;
     private InfoPanel infoPanel;
+    private ComptabilitePanel comptabilitePanel;
     private VentePanel ventePanel;
     private GestionUtilisateursPanel gestionUtilisateursPanel;
     private HistoriqueVentesPanel historiqueVentesPanel;
@@ -78,9 +79,8 @@ public class MainFrame extends JFrame implements LoginListener, PharmacieDataLis
         gestionUtilisateursPanel = new GestionUtilisateursPanel(pharmacie, this);
         historiqueVentesPanel = new HistoriqueVentesPanel(pharmacie);
         approvisionnementPanel = new ApprovisionnementPanel(pharmacie, this);
-
+        comptabilitePanel = new ComptabilitePanel(pharmacie, this);
         gestionAssurancesPanel = new GestionAssurancesPanel(pharmacie, this);
-
 
         mainPanel.add(loginPanel, "Login");
         mainPanel.add(welcomePanel, "Welcome");
@@ -92,6 +92,7 @@ public class MainFrame extends JFrame implements LoginListener, PharmacieDataLis
         mainPanel.add(historiqueVentesPanel, "HistoriqueVentes");
         mainPanel.add(approvisionnementPanel, "Approvisionnement");
         mainPanel.add(gestionAssurancesPanel, "GestionAssurances");
+        mainPanel.add(comptabilitePanel, "Comptabilite");
 
         add(mainPanel);
 
@@ -101,7 +102,6 @@ public class MainFrame extends JFrame implements LoginListener, PharmacieDataLis
     private void showCard(String cardName) {
         cardLayout.show(mainPanel, cardName);
         this.currentCardName = cardName;
-
 
         if (Objects.equals(cardName, "Vente")) {
             ventePanel.setCurrentUser(currentUser);
@@ -118,6 +118,8 @@ public class MainFrame extends JFrame implements LoginListener, PharmacieDataLis
             approvisionnementPanel.refreshProductTable();
         } else if (Objects.equals(cardName, "GestionAssurances")) {
             gestionAssurancesPanel.loadAssurances();
+        } else if (Objects.equals(cardName, "Comptabilite")) {
+            comptabilitePanel.refreshAccountingData();
         }
     }
 
@@ -163,6 +165,9 @@ public class MainFrame extends JFrame implements LoginListener, PharmacieDataLis
             gererAssurancesItem.addActionListener(e -> showCard("GestionAssurances"));
             gestionMenu.add(gererAssurancesItem);
         }
+        JMenuItem comptabiliteItem = new JMenuItem("Comptabilité");
+        comptabiliteItem.addActionListener(e -> showCard("Comptabilite"));
+        gestionMenu.add(comptabiliteItem);
 
         JMenuItem ajouterProduitItem = new JMenuItem("Ajouter Produit");
         ajouterProduitItem.addActionListener(e -> showCard("AjouterProduit"));
@@ -226,5 +231,6 @@ public class MainFrame extends JFrame implements LoginListener, PharmacieDataLis
         historiqueVentesPanel.refreshFacturesTable();
         approvisionnementPanel.refreshProductTable();
         gestionAssurancesPanel.loadAssurances();
+        comptabilitePanel.refreshAccountingData();
     }
 }

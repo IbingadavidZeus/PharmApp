@@ -85,7 +85,6 @@ public class ProduitDAOImpl implements ProduitDAO {
         return produit;
     }
 
-    @Override
     public Produit trouverParId(int id) throws SQLException {
         return findProduitById(id);
     }
@@ -246,5 +245,11 @@ public class ProduitDAOImpl implements ProduitDAO {
             throw new SQLException("Type de produit inconnu dans la base de données pour la référence " + reference
                     + ": " + typeProduit);
         }
+    }
+
+    @Override
+    public boolean mettreAJourQuantite(Connection conn, String reference, int nouvelleQuantite) throws SQLException {
+        
+        throw new UnsupportedOperationException("Unimplemented method 'mettreAJourQuantite'");
     }
 }
