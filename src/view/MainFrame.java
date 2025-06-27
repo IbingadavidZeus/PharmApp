@@ -9,12 +9,10 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.util.Objects;
 
-// Interface pour notifier MainFrame des événements de connexion
 interface LoginListener {
     void onLoginSuccess(Utilisateur user);
 }
 
-// Interface pour notifier MainFrame des changements de données dans la Pharmacie
 interface PharmacieDataListener {
     void onPharmacieDataChanged();
 }
@@ -34,7 +32,7 @@ public class MainFrame extends JFrame implements LoginListener, PharmacieDataLis
     private GestionUtilisateursPanel gestionUtilisateursPanel;
     private HistoriqueVentesPanel historiqueVentesPanel;
     private ApprovisionnementPanel approvisionnementPanel;
-    private GestionAssurancesPanel gestionAssurancesPanel; 
+    private GestionAssurancesPanel gestionAssurancesPanel;
     private Utilisateur currentUser;
     private String currentCardName = "Login";
 
@@ -51,7 +49,6 @@ public class MainFrame extends JFrame implements LoginListener, PharmacieDataLis
         setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         setLocationRelativeTo(null);
 
-        // NOUVEAU: Définir l'icône de la fenêtre
         try {
             Image icon = Toolkit.getDefaultToolkit().getImage(getClass().getResource("/image/app_icon.png"));
             this.setIconImage(icon);
@@ -72,7 +69,6 @@ public class MainFrame extends JFrame implements LoginListener, PharmacieDataLis
         cardLayout = new CardLayout();
         mainPanel = new JPanel(cardLayout);
 
-        // Initialisation des panels
         loginPanel = new LoginPanel(pharmacie, this);
         welcomePanel = new WelcomePanel();
         ajouterProduitPanel = new AjouterProduitPanel(pharmacie, this);
@@ -82,10 +78,10 @@ public class MainFrame extends JFrame implements LoginListener, PharmacieDataLis
         gestionUtilisateursPanel = new GestionUtilisateursPanel(pharmacie, this);
         historiqueVentesPanel = new HistoriqueVentesPanel(pharmacie);
         approvisionnementPanel = new ApprovisionnementPanel(pharmacie, this);
-       
-        gestionAssurancesPanel = new GestionAssurancesPanel(pharmacie, this); 
-        
-        
+
+        gestionAssurancesPanel = new GestionAssurancesPanel(pharmacie, this);
+
+
         mainPanel.add(loginPanel, "Login");
         mainPanel.add(welcomePanel, "Welcome");
         mainPanel.add(ajouterProduitPanel, "AjouterProduit");
@@ -95,7 +91,7 @@ public class MainFrame extends JFrame implements LoginListener, PharmacieDataLis
         mainPanel.add(gestionUtilisateursPanel, "GererUtilisateurs");
         mainPanel.add(historiqueVentesPanel, "HistoriqueVentes");
         mainPanel.add(approvisionnementPanel, "Approvisionnement");
-        mainPanel.add(gestionAssurancesPanel, "GestionAssurances"); // NOUVEAU: Ajout du panel
+        mainPanel.add(gestionAssurancesPanel, "GestionAssurances");
 
         add(mainPanel);
 
@@ -106,7 +102,7 @@ public class MainFrame extends JFrame implements LoginListener, PharmacieDataLis
         cardLayout.show(mainPanel, cardName);
         this.currentCardName = cardName;
 
-        // Rafraîchir les panels si nécessaire lors du changement de carte
+
         if (Objects.equals(cardName, "Vente")) {
             ventePanel.setCurrentUser(currentUser);
             ventePanel.refreshProductSelectionTable();
@@ -120,8 +116,8 @@ public class MainFrame extends JFrame implements LoginListener, PharmacieDataLis
             historiqueVentesPanel.refreshFacturesTable();
         } else if (Objects.equals(cardName, "Approvisionnement")) {
             approvisionnementPanel.refreshProductTable();
-        } else if (Objects.equals(cardName, "GestionAssurances")) { // NOUVEAU: Rafraîchir GestionAssurancesPanel
-            gestionAssurancesPanel.loadAssurances(); // Appeler la méthode de rafraîchissement
+        } else if (Objects.equals(cardName, "GestionAssurances")) {
+            gestionAssurancesPanel.loadAssurances();
         }
     }
 
@@ -163,7 +159,6 @@ public class MainFrame extends JFrame implements LoginListener, PharmacieDataLis
             approvisionnementItem.addActionListener(e -> showCard("Approvisionnement"));
             gestionMenu.add(approvisionnementItem);
 
-            // NOUVEAU: Élément de menu pour Gérer Assurances, uniquement pour les admins
             JMenuItem gererAssurancesItem = new JMenuItem("Gérer Assurances Sociales");
             gererAssurancesItem.addActionListener(e -> showCard("GestionAssurances"));
             gestionMenu.add(gererAssurancesItem);
@@ -230,6 +225,6 @@ public class MainFrame extends JFrame implements LoginListener, PharmacieDataLis
         ventePanel.refreshProductSelectionTable();
         historiqueVentesPanel.refreshFacturesTable();
         approvisionnementPanel.refreshProductTable();
-        gestionAssurancesPanel.loadAssurances(); 
+        gestionAssurancesPanel.loadAssurances();
     }
 }
