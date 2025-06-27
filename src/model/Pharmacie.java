@@ -4,10 +4,12 @@ import dao.FactureDAO;
 import dao.LigneFactureDAO;
 import dao.ProduitDAO;
 import dao.UtilisateurDAO;
+import dao.AssuranceSocialDAO; // Nouveau: Import
 import dao.impl.FactureDAOImpl;
 import dao.impl.LigneFactureDAOImpl;
 import dao.impl.ProduitDAOImpl;
 import dao.impl.UtilisateurDAOImpl;
+import dao.impl.AssuranceSocialDAOImpl; // Nouveau: Import
 import java.io.*;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
@@ -19,12 +21,12 @@ public class Pharmacie implements Serializable {
     private String nom;
     private String adresse;
 
-    // Dépendances DAO (non sérialisables, initialisées au démarrage ou par
-    // injection)
+    // Dépendances DAO (non sérialisables, initialisées au démarrage ou par injection)
     private transient ProduitDAO produitDAO;
     private transient UtilisateurDAO utilisateurDAO;
     private transient FactureDAO factureDAO;
     private transient LigneFactureDAO ligneFactureDAO;
+    private transient AssuranceSocialDAO AssuranceSocialDAO; 
 
     public Pharmacie(String nom, String adresse) {
         this.nom = nom;
@@ -37,7 +39,9 @@ public class Pharmacie implements Serializable {
         this.produitDAO = new ProduitDAOImpl();
         this.utilisateurDAO = new UtilisateurDAOImpl();
         this.ligneFactureDAO = new LigneFactureDAOImpl(produitDAO);
-        this.factureDAO = new FactureDAOImpl(utilisateurDAO, ligneFactureDAO);
+        this.AssuranceSocialDAO = new AssuranceSocialDAOImpl(); // NOUVEAU: Initialisation
+        // NOUVEAU: Passer produitDAO ET assuranceSocialeDAO au constructeur de FactureDAOImpl
+        this.factureDAO = new FactureDAOImpl(utilisateurDAO, ligneFactureDAO, produitDAO, AssuranceSocialDAO);
     }
 
     // Gère la désérialisation: réinitialise les transients DAOs
@@ -85,11 +89,22 @@ public class Pharmacie implements Serializable {
             return null;
         }
     }
+    
+    public Produit getProduitById(int id) { // Ajout si utile
+        try {
+            return produitDAO.findProduitById(id);
+        } catch (SQLException e) {
+            System.err.println("Erreur SQL lors de la récupération du produit par ID: " + e.getMessage());
+            e.printStackTrace();
+            return null;
+        }
+    }
+
 
     public List<Produit> getProduits() throws SQLException {
         return produitDAO.getAllProduits();
     }
-
+    
     public List<Produit> rechercherProduits(String critere) throws SQLException {
         return produitDAO.rechercherProduits(critere);
     }
@@ -120,6 +135,9 @@ public class Pharmacie implements Serializable {
         }
         return valeurTotale;
     }
+
+
+    // --- Méthodes pour l'authentification et la gestion des utilisateurs (délèguent à UtilisateurDAO) ---
 
     public Utilisateur authentifier(String nomUtilisateur, String motDePasse) {
         try {
@@ -162,10 +180,12 @@ public class Pharmacie implements Serializable {
         return utilisateurDAO.getUtilisateurById(id);
     }
 
+    // --- Méthodes pour la finalisation des ventes (délèguent à FactureDAO) ---
     public boolean finaliserVente(Facture facture) throws SQLException {
         return factureDAO.ajouterFacture(facture);
     }
 
+    // Méthodes pour accéder aux factures via la classe Pharmacie
     public List<Facture> getAllFactures() throws SQLException {
         return factureDAO.getAllFactures();
     }
@@ -182,6 +202,16 @@ public class Pharmacie implements Serializable {
         return factureDAO.getFactureById(id);
     }
 
+    // NOUVEAU: Méthodes pour accéder aux Assurances Sociales
+    public List<AssuranceSocial> getAllAssurancesSociales() throws SQLException {
+        return AssuranceSocialDAO.getAllAssurances();
+    }
+
+    public AssuranceSocial getAssuranceSocialeById(int id) throws SQLException {
+        return AssuranceSocialDAO.getAssuranceById(id);
+    }
+
+    // --- Méthodes de sauvegarde et chargement (pour les propriétés de la Pharmacie) ---
     public void sauvegarderDansFichier(String nomFichier) {
         try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(nomFichier))) {
             oos.writeObject(this);
@@ -195,8 +225,7 @@ public class Pharmacie implements Serializable {
     public static Pharmacie chargerDepuisFichier(String nomFichier) {
         File file = new File(nomFichier);
         if (!file.exists()) {
-            System.out.println(
-                    "Fichier de sauvegarde non trouvé: " + nomFichier + ". Une nouvelle Pharmacie sera créée.");
+            System.out.println("Fichier de sauvegarde non trouvé: " + nomFichier + ". Une nouvelle Pharmacie sera créée.");
             return null;
         }
         try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(nomFichier))) {

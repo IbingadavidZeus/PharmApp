@@ -1,26 +1,48 @@
 package dao.impl;
 
-import dao.DatabaseManager;
 import dao.LigneFactureDAO;
 import dao.ProduitDAO;
+import dao.DatabaseManager; 
 import model.LigneFacture;
 import model.Produit;
+import model.Medicament; 
+import model.ProduitParaPharmacie; 
 
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement; 
 import java.util.ArrayList;
 import java.util.List;
 
 public class LigneFactureDAOImpl implements LigneFactureDAO {
-
     private ProduitDAO produitDAO;
 
     public LigneFactureDAOImpl(ProduitDAO produitDAO) {
         this.produitDAO = produitDAO;
     }
 
+    // Version pour transaction: utilise la connexion fournie
+    @Override
+    public boolean ajouterLigneFacture(Connection conn, LigneFacture ligneFacture) throws SQLException {
+        String sql = "INSERT INTO lignesfacture (id_facture, reference_produit, quantite_vendue, prix_unitaire_ht, prix_unitaire_ttc, sous_total) VALUES (?, ?, ?, ?, ?, ?)";
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) { 
+            stmt.setInt(1, ligneFacture.getIdFacture());
+            stmt.setString(2, ligneFacture.getProduit().getReference());
+            stmt.setInt(3, ligneFacture.getQuantite());
+            stmt.setDouble(4, ligneFacture.getPrixUnitaire());
+            stmt.setDouble(5, ligneFacture.getPrixUnitaire()); // Prix unitaire TTC   
+            stmt.setDouble(6, ligneFacture.getSousTotal());
+            return stmt.executeUpdate() > 0;
+        }
+        // Pas de close() ou setAutoCommit(true/false) ici, la gestion de la transaction est externe
+    }
+
+    // Version autonome: ouvre et ferme sa propre connexion
     @Override
     public boolean ajouterLigneFacture(LigneFacture ligneFacture) throws SQLException {
-        String sql = "INSERT INTO lignesfacture (id_facture, id_produit, quantite_vendue, prix_unitaire_ht, sous_total) VALUES (?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO lignesfacture (id_facture, reference_produit, quantite_vendue, prix_unitaire_ht, prix_unitaire_ttc, sous_total) VALUES (?, ?, ?, ?, ?, ?)";
         Connection conn = null;
         PreparedStatement pstmt = null;
         ResultSet rs = null;
@@ -30,10 +52,11 @@ public class LigneFactureDAOImpl implements LigneFactureDAO {
             pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
 
             pstmt.setInt(1, ligneFacture.getIdFacture());
-            pstmt.setInt(2, ligneFacture.getProduit().getId());
+            pstmt.setString(2, ligneFacture.getProduit().getReference());
             pstmt.setInt(3, ligneFacture.getQuantite());
             pstmt.setDouble(4, ligneFacture.getPrixUnitaire());
-            pstmt.setDouble(5, ligneFacture.getSousTotal());
+            pstmt.setDouble(5, ligneFacture.getPrixUnitaire());
+            pstmt.setDouble(6, ligneFacture.getSousTotal());
 
             int rowsAffected = pstmt.executeUpdate();
             if (rowsAffected > 0) {
@@ -45,46 +68,71 @@ public class LigneFactureDAOImpl implements LigneFactureDAO {
             }
             return false;
         } finally {
-            DatabaseManager.close(conn, pstmt, rs);
+            DatabaseManager.close(conn, pstmt, rs); // Ferme les ressources
         }
     }
 
     @Override
-    public List<LigneFacture> getLignesFactureByFactureId(int idFacture) throws SQLException {
-        List<LigneFacture> lignes = new ArrayList<>();
-        String sql = "SELECT id_ligne_facture, id_produit, quantite_vendue, prix_unitaire_ht, sous_total FROM lignesfacture WHERE id_facture = ?";
+    public List<LigneFacture> getLignesFactureByFactureId(int factureId) throws SQLException {
+        List<LigneFacture> lignesFacture = new ArrayList<>();
+        String sql = "SELECT lf.id_ligne_facture, lf.id_facture, lf.reference_produit, lf.quantite_vendue, lf.prix_unitaire_ht, lf.prix_unitaire_ttc, lf.sous_total, " +
+                     "p.id_produit, p.nom, p.description, p.prix_ht as produit_prix_ht, p.quantite as produit_quantite, p.type_produit, p.est_generique, p.est_sur_ordonnance, p.categorie_parapharmacie " +
+                     "FROM lignesfacture lf JOIN produits p ON lf.reference_produit = p.reference WHERE lf.id_facture = ?";
+        
         Connection conn = null;
-        PreparedStatement pstmt = null;
+        PreparedStatement stmt = null;
         ResultSet rs = null;
 
         try {
-            conn = DatabaseManager.getConnection();
-            pstmt = conn.prepareStatement(sql);
-            pstmt.setInt(1, idFacture);
-            rs = pstmt.executeQuery();
+            conn = DatabaseManager.getConnection(); 
+            stmt = conn.prepareStatement(sql);
+            stmt.setInt(1, factureId);
+            rs = stmt.executeQuery();
 
             while (rs.next()) {
-                int idLigne = rs.getInt("id_ligne_facture");
+                Produit produit = null;
                 int idProduit = rs.getInt("id_produit");
-                int quantite = rs.getInt("quantite_vendue");
-                double prixUnitaire = rs.getDouble("prix_unitaire_ht");
-                double sousTotal = rs.getDouble("sous_total");
+                String produitNom = rs.getString("nom");
+                String produitReference = rs.getString("reference_produit");
+                String produitDescription = rs.getString("description");
+                double produitPrixHt = rs.getDouble("produit_prix_ht");
+                int produitQuantite = rs.getInt("produit_quantite");
+                String produitType = rs.getString("type_produit");
 
-                // Charger le produit associé
-                Produit produit = produitDAO.findProduitById(idProduit);
+                if ("Medicament".equalsIgnoreCase(produitType)) { 
+                    boolean estGenerique = rs.getBoolean("est_generique");
+                    boolean estSurOrdonnance = rs.getBoolean("est_sur_ordonnance");
+                    produit = new Medicament(idProduit, produitNom, produitReference, produitDescription, produitPrixHt, produitQuantite, estGenerique, estSurOrdonnance);
+                } else if ("Parapharmacie".equalsIgnoreCase(produitType)) { 
+                    String categoriePara = rs.getString("categorie_parapharmacie");
+                    produit = new ProduitParaPharmacie(idProduit, produitNom, produitReference, produitDescription, produitPrixHt, produitQuantite, categoriePara);
+                } else {
+                    produit = new Produit(idProduit, produitNom, produitReference, produitDescription, produitPrixHt, produitQuantite, produitType);
+                }
 
-                LigneFacture ligne = new LigneFacture(idLigne, idFacture, produit, quantite, prixUnitaire, sousTotal);
-                lignes.add(ligne);
+                LigneFacture ligneFacture = new LigneFacture(
+                    rs.getInt("id_ligne_facture"),
+                    rs.getInt("id_facture"),
+                    produit, 
+                    rs.getInt("quantite_vendue"),
+                    rs.getDouble("prix_unitaire_ht"),
+                    rs.getDouble("prix_unitaire_ttc"), 
+                    rs.getDouble("sous_total")
+                );
+                lignesFacture.add(ligneFacture);
             }
         } finally {
-            DatabaseManager.close(conn, pstmt, rs);
+            DatabaseManager.close(conn, stmt, rs); 
         }
-        return lignes;
+        return lignesFacture;
     }
 
     @Override
     public LigneFacture getLigneFactureById(int id) throws SQLException {
-        String sql = "SELECT id_ligne_facture, id_facture, id_produit, quantite_vendue, prix_unitaire_ht, sous_total FROM lignesfacture WHERE id_ligne_facture = ?";
+        String sql = "SELECT lf.id_ligne_facture, lf.id_facture, lf.reference_produit, lf.quantite_vendue, lf.prix_unitaire_ht, lf.prix_unitaire_ttc, lf.sous_total, " +
+                     "p.id_produit, p.nom, p.description, p.prix_ht as produit_prix_ht, p.quantite as produit_quantite, p.type_produit, p.est_generique, p.est_sur_ordonnance, p.categorie_parapharmacie " +
+                     "FROM lignesfacture lf JOIN produits p ON lf.reference_produit = p.reference WHERE lf.id_ligne_facture = ?";
+        
         Connection conn = null;
         PreparedStatement pstmt = null;
         ResultSet rs = null;
@@ -97,16 +145,35 @@ public class LigneFactureDAOImpl implements LigneFactureDAO {
             rs = pstmt.executeQuery();
 
             if (rs.next()) {
-                int idLigne = rs.getInt("id_ligne_facture");
-                int idFacture = rs.getInt("id_facture");
+                Produit produit = null;
                 int idProduit = rs.getInt("id_produit");
-                int quantite = rs.getInt("quantite_vendue");
-                double prixUnitaire = rs.getDouble("prix_unitaire_ht");
-                double sousTotal = rs.getDouble("sous_total");
+                String produitNom = rs.getString("nom");
+                String produitReference = rs.getString("reference_produit");
+                String produitDescription = rs.getString("description");
+                double produitPrixHt = rs.getDouble("produit_prix_ht");
+                int produitQuantite = rs.getInt("produit_quantite");
+                String produitType = rs.getString("type_produit");
 
-                Produit produit = produitDAO.findProduitById(idProduit);
+                if ("Medicament".equalsIgnoreCase(produitType)) {
+                    boolean estGenerique = rs.getBoolean("est_generique");
+                    boolean estSurOrdonnance = rs.getBoolean("est_sur_ordonnance");
+                    produit = new Medicament(idProduit, produitNom, produitReference, produitDescription, produitPrixHt, produitQuantite, estGenerique, estSurOrdonnance);
+                } else if ("Parapharmacie".equalsIgnoreCase(produitType)) {
+                    String categoriePara = rs.getString("categorie_parapharmacie");
+                    produit = new ProduitParaPharmacie(idProduit, produitNom, produitReference, produitDescription, produitPrixHt, produitQuantite, categoriePara);
+                } else {
+                    produit = new Produit(idProduit, produitNom, produitReference, produitDescription, produitPrixHt, produitQuantite, produitType);
+                }
 
-                ligneFacture = new LigneFacture(idLigne, idFacture, produit, quantite, prixUnitaire, sousTotal);
+                ligneFacture = new LigneFacture(
+                    rs.getInt("id_ligne_facture"),
+                    rs.getInt("id_facture"),
+                    produit,
+                    rs.getInt("quantite_vendue"),
+                    rs.getDouble("prix_unitaire_ht"),
+                    rs.getDouble("prix_unitaire_ttc"), 
+                    rs.getDouble("sous_total")
+                );
             }
         } finally {
             DatabaseManager.close(conn, pstmt, rs);
@@ -116,7 +183,7 @@ public class LigneFactureDAOImpl implements LigneFactureDAO {
 
     @Override
     public boolean mettreAJourLigneFacture(LigneFacture ligneFacture) throws SQLException {
-        String sql = "UPDATE lignesfacture SET id_facture = ?, id_produit = ?, quantite_vendue = ?, prix_unitaire_ht = ?, sous_total = ? WHERE id_ligne_facture = ?";
+        String sql = "UPDATE lignesfacture SET id_facture = ?, reference_produit = ?, quantite_vendue = ?, prix_unitaire_ht = ?, prix_unitaire_ttc = ?, sous_total = ? WHERE id_ligne_facture = ?";
         Connection conn = null;
         PreparedStatement pstmt = null;
 
@@ -124,9 +191,10 @@ public class LigneFactureDAOImpl implements LigneFactureDAO {
             conn = DatabaseManager.getConnection();
             pstmt = conn.prepareStatement(sql);
             pstmt.setInt(1, ligneFacture.getIdFacture());
-            pstmt.setInt(2, ligneFacture.getProduit().getId());
+            pstmt.setString(2, ligneFacture.getProduit().getReference()); 
             pstmt.setInt(3, ligneFacture.getQuantite());
             pstmt.setDouble(4, ligneFacture.getPrixUnitaire());
+            // pstmt.setDouble(5, ligneFacture.getPrixUnitaire()); 
             pstmt.setDouble(5, ligneFacture.getSousTotal());
             pstmt.setInt(6, ligneFacture.getId());
 
@@ -171,11 +239,5 @@ public class LigneFactureDAOImpl implements LigneFactureDAO {
         } finally {
             DatabaseManager.close(conn, pstmt);
         }
-    }
-
-    @Override
-    public boolean ajouterLigneFacture(Connection conn, LigneFacture ligneFacture) throws SQLException {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'ajouterLigneFacture'");
     }
 }

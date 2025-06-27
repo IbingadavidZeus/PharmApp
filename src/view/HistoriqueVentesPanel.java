@@ -224,7 +224,7 @@ public class HistoriqueVentesPanel extends JPanel {
                 DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
 
                 details.append("FACTURE DÉTAILS\n");
-                details.append("--------------------------------------------------\n");
+                details.append("-----------------------------------------------------------------------------\n");
                 details.append("ID Facture:       ").append(facture.getId()).append("\n");
                 details.append("Numéro Facture:   ").append(facture.getNumeroFacture()).append("\n");
                 details.append("Date:             ").append(facture.getDateFacture().format(formatter)).append("\n");
@@ -233,10 +233,10 @@ public class HistoriqueVentesPanel extends JPanel {
                         .append("\n");
                 details.append("Total TTC:        ").append(String.format("%.2f FCFA", facture.getMontantTotal()))
                         .append("\n");
-                details.append("--------------------------------------------------\n");
+                details.append("-----------------------------------------------------------------------------\n");
                 details.append("Produits :\n");
                 details.append(String.format("%-25s %8s %12s %15s\n", "Nom Produit", "Qté", "Prix U.", "Sous-Total"));
-                details.append("--------------------------------------------------\n");
+                details.append("-----------------------------------------------------------------------------\n");
 
                 for (LigneFacture ligne : facture.getLignesFacture()) {
                     details.append(String.format("%-25.25s %8d %12.2f %15.2f\n",
@@ -245,7 +245,7 @@ public class HistoriqueVentesPanel extends JPanel {
                             ligne.getPrixUnitaire(),
                             ligne.getSousTotal()));
                 }
-                details.append("--------------------------------------------------\n");
+                details.append("-----------------------------------------------------------------------------\n");
                 details.append("Total TTC: ").append(String.format("%.2f FCFA", facture.getMontantTotal()));
 
                 JTextArea textArea = new JTextArea(details.toString());

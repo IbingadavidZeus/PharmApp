@@ -6,9 +6,11 @@ import model.Panier;
 import model.Pharmacie;
 import model.Produit;
 import model.Utilisateur;
+import model.AssuranceSocial; 
 
 import javax.swing.*;
-import javax.swing.table.DefaultTableModel;
+import javax.swing.border.EmptyBorder;
+import javax.swing.table.DefaultTableModel; 
 import java.awt.*;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.StringSelection;
@@ -19,6 +21,8 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
+import java.util.Objects; 
+import java.util.UUID; 
 
 public class VentePanel extends JPanel {
     private Pharmacie pharmacie;
@@ -26,6 +30,7 @@ public class VentePanel extends JPanel {
     private PharmacieDataListener dataListener;
     private Panier panier;
 
+    // UI - Recherche et sélection de produits
     private JTextField searchField;
     private JButton searchButton;
     private JTable productSelectionTable;
@@ -33,79 +38,112 @@ public class VentePanel extends JPanel {
     private JTextField quantityToAddField;
     private JButton addToCartButton;
 
+    // UI - Panier
     private JTable cartTable;
     private DefaultTableModel cartTableModel;
     private JButton removeFromCartButton;
     private JButton clearCartButton;
 
-    private JLabel totalLabel;
+    // UI - Paiement et Totaux
+    private JLabel totalTTCAvantAssuranceLabel; 
+    private JComboBox<AssuranceSocial> assuranceComboBox; 
+    private JLabel montantPrisEnChargeLabel;    
+    private JLabel montantClientAPayerLabel;    
+    
+    // NOUVEAU: Champ pour stocker le montant numérique réel que le client doit payer
+    private double currentClientAmountToPay; 
+
     private JTextField montantDonneField;
     private JLabel monnaieARendreLabel;
     private JButton finaliserVenteButton;
 
-    private JLabel messageLabel;
+    private JLabel messageLabel; 
 
-    private final String[] productColumns = { "Référence", "Nom", "Prix U. TTC", "Stock" };
-    private final String[] cartColumns = { "Référence", "Nom", "Quantité", "Prix U. TTC", "Sous-Total" };
+    // Noms des colonnes pour les tables
+    private final String[] productColumns = { "Référence", "Nom", "Prix U. TTC", "Stock", "Remboursable" }; 
+    private final String[] cartColumns = { "Référence", "Nom", "Qté", "Prix U. TTC", "Sous-Total", "Remboursable" }; 
 
     public VentePanel(Pharmacie pharmacie, Utilisateur currentUser, PharmacieDataListener dataListener) {
         this.pharmacie = pharmacie;
         this.currentUser = currentUser;
         this.dataListener = dataListener;
-        this.panier = new Panier(pharmacie);
+        this.panier = new Panier(pharmacie); 
 
-        setLayout(new BorderLayout(10, 10));
+        setLayout(new BorderLayout(15, 15)); 
+        setBorder(new EmptyBorder(15, 15, 15, 15)); 
 
-        JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        // --- Panel de Recherche de Produits (NORTH) ---
+        JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 5));
+        searchPanel.setBorder(BorderFactory.createTitledBorder("Recherche de Produits"));
+        searchPanel.add(new JLabel("Rechercher (Nom/Référence):"));
         searchField = new JTextField(25);
-        searchButton = new JButton("Rechercher Produit");
+        searchPanel.add(searchField);
+        searchButton = new JButton("Rechercher");
         searchButton.addActionListener(e -> {
             try {
                 searchProducts();
             } catch (SQLException ex) {
-            JOptionPane.showMessageDialog(this,
+                JOptionPane.showMessageDialog(this,
                     "Erreur lors du chargement des produits depuis la base de données: " + ex.getMessage(),
                     "Erreur de Base de Données", JOptionPane.ERROR_MESSAGE);
-            ex.printStackTrace();
-        }
+                ex.printStackTrace();
+            }
         });
-        searchPanel.add(new JLabel("Rechercher (Nom/Référence):"));
-        searchPanel.add(searchField);
         searchPanel.add(searchButton);
         add(searchPanel, BorderLayout.NORTH);
 
+        // --- SplitPane pour la sélection des produits et le panier (CENTER) ---
         JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
+        splitPane.setResizeWeight(0.5); 
 
-        JPanel productSelectionPanel = new JPanel(new BorderLayout());
+        // Panel de Sélection des Produits
+        JPanel productSelectionPanel = new JPanel(new BorderLayout(5, 5));
         productSelectionPanel.setBorder(BorderFactory.createTitledBorder("Produits disponibles"));
         productSelectionTableModel = new DefaultTableModel(productColumns, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
-                return false;
+                return false; 
+            }
+            @Override
+            public Class<?> getColumnClass(int column) {
+                if (column == 2) return Double.class; 
+                if (column == 3) return Integer.class; 
+                if (column == 4) return Boolean.class; 
+                return Object.class;
             }
         };
         productSelectionTable = new JTable(productSelectionTableModel);
         productSelectionTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        productSelectionTable.setAutoCreateRowSorter(true);
+        productSelectionTable.setAutoCreateRowSorter(true); 
         productSelectionPanel.add(new JScrollPane(productSelectionTable), BorderLayout.CENTER);
 
-        JPanel addToCartPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
-        addToCartPanel.add(new JLabel("Qté à ajouter:"));
+        JPanel addToCartPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 5));
+        addToCartPanel.add(new JLabel("Quantité:"));
         quantityToAddField = new JTextField("1", 5);
         addToCartPanel.add(quantityToAddField);
         addToCartButton = new JButton("Ajouter au Panier");
+        addToCartButton.setBackground(new Color(135, 206, 250)); 
+        addToCartButton.setForeground(Color.BLACK);
         addToCartButton.addActionListener(e -> addSelectedProductToCart());
         addToCartPanel.add(addToCartButton);
         productSelectionPanel.add(addToCartPanel, BorderLayout.SOUTH);
 
         splitPane.setLeftComponent(productSelectionPanel);
 
-        JPanel cartPanel = new JPanel(new BorderLayout());
+        // Panel du Panier
+        JPanel cartPanel = new JPanel(new BorderLayout(5, 5));
         cartPanel.setBorder(BorderFactory.createTitledBorder("Votre Panier"));
         cartTableModel = new DefaultTableModel(cartColumns, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
                 return false;
+            }
+            @Override
+            public Class<?> getColumnClass(int column) {
+                if (column == 2) return Integer.class; 
+                if (column == 3 || column == 4) return Double.class; 
+                if (column == 5) return Boolean.class; 
+                return Object.class;
             }
         };
         cartTable = new JTable(cartTableModel);
@@ -113,10 +151,14 @@ public class VentePanel extends JPanel {
         cartTable.setAutoCreateRowSorter(true);
         cartPanel.add(new JScrollPane(cartTable), BorderLayout.CENTER);
 
-        JPanel cartActionsPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        JPanel cartActionsPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 5));
         removeFromCartButton = new JButton("Retirer Sélection");
+        removeFromCartButton.setBackground(new Color(255, 99, 71)); 
+        removeFromCartButton.setForeground(Color.WHITE);
         removeFromCartButton.addActionListener(e -> removeSelectedProductFromCart());
         clearCartButton = new JButton("Vider Panier");
+        clearCartButton.setBackground(new Color(255, 215, 0)); 
+        clearCartButton.setForeground(Color.BLACK);
         clearCartButton.addActionListener(e -> clearCart());
         cartActionsPanel.add(removeFromCartButton);
         cartActionsPanel.add(clearCartButton);
@@ -124,125 +166,157 @@ public class VentePanel extends JPanel {
 
         splitPane.setRightComponent(cartPanel);
         add(splitPane, BorderLayout.CENTER);
-        splitPane.setResizeWeight(0.5);
 
+        // --- Panel de Paiement et Finalisation (SOUTH) ---
         JPanel checkoutPanel = new JPanel(new GridBagLayout());
+        checkoutPanel.setBorder(new EmptyBorder(10, 0, 0, 0)); 
+
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(5, 5, 5, 5);
+        gbc.insets = new Insets(5, 10, 5, 10); 
         gbc.fill = GridBagConstraints.HORIZONTAL;
 
         int row = 0;
-        gbc.gridx = 0;
-        gbc.gridy = row;
-        gbc.anchor = GridBagConstraints.EAST;
-        checkoutPanel.add(new JLabel("Total Panier (TTC):"), gbc);
-        gbc.gridx = 1;
-        gbc.gridy = row;
-        gbc.anchor = GridBagConstraints.WEST;
-        totalLabel = new JLabel("0.00 FCFA");
-        totalLabel.setFont(new Font("Arial", Font.BOLD, 16));
-        totalLabel.setForeground(Color.BLUE);
-        checkoutPanel.add(totalLabel, gbc);
+
+        // Total TTC avant assurance
+        gbc.gridx = 0; gbc.gridy = row; gbc.anchor = GridBagConstraints.EAST;
+        checkoutPanel.add(new JLabel("Total TTC (avant assurance):"), gbc);
+        gbc.gridx = 1; gbc.gridy = row; gbc.weightx = 1.0; gbc.anchor = GridBagConstraints.WEST;
+        totalTTCAvantAssuranceLabel = new JLabel("0.00 FCFA");
+        totalTTCAvantAssuranceLabel.setFont(new Font("Arial", Font.BOLD, 16));
+        totalTTCAvantAssuranceLabel.setForeground(Color.BLUE);
+        checkoutPanel.add(totalTTCAvantAssuranceLabel, gbc);
         row++;
 
-        gbc.gridx = 0;
-        gbc.gridy = row;
-        gbc.anchor = GridBagConstraints.EAST;
+        // Sélection Assurance
+        gbc.gridx = 0; gbc.gridy = row; gbc.anchor = GridBagConstraints.EAST;
+        checkoutPanel.add(new JLabel("Assurance Sociale:"), gbc);
+        gbc.gridx = 1; gbc.gridy = row; gbc.weightx = 1.0; gbc.anchor = GridBagConstraints.WEST;
+        assuranceComboBox = new JComboBox<>();
+        assuranceComboBox.setPreferredSize(new Dimension(250, 30));
+        assuranceComboBox.addActionListener(e -> calculateTotalsWithAssurance()); 
+        checkoutPanel.add(assuranceComboBox, gbc);
+        row++;
+
+        // Montant pris en charge par l'assurance
+        gbc.gridx = 0; gbc.gridy = row; gbc.anchor = GridBagConstraints.EAST;
+        checkoutPanel.add(new JLabel("Montant pris en charge par assurance:"), gbc);
+        gbc.gridx = 1; gbc.gridy = row; gbc.weightx = 1.0; gbc.anchor = GridBagConstraints.WEST;
+        montantPrisEnChargeLabel = new JLabel("0.00 FCFA");
+        montantPrisEnChargeLabel.setFont(new Font("Arial", Font.ITALIC, 14));
+        montantPrisEnChargeLabel.setForeground(new Color(34, 139, 34)); 
+        checkoutPanel.add(montantPrisEnChargeLabel, gbc);
+        row++;
+
+        // Montant restant à payer par le client
+        gbc.gridx = 0; gbc.gridy = row; gbc.anchor = GridBagConstraints.EAST;
+        checkoutPanel.add(new JLabel("MONTANT CLIENT À PAYER (TTC):"), gbc);
+        gbc.gridx = 1; gbc.gridy = row; gbc.weightx = 1.0; gbc.anchor = GridBagConstraints.WEST;
+        montantClientAPayerLabel = new JLabel("0.00 FCFA");
+        montantClientAPayerLabel.setFont(new Font("Arial", Font.BOLD, 18));
+        montantClientAPayerLabel.setForeground(new Color(255, 69, 0)); 
+        checkoutPanel.add(montantClientAPayerLabel, gbc);
+        row++;
+
+        // Montant donné par le client
+        gbc.gridx = 0; gbc.gridy = row; gbc.anchor = GridBagConstraints.EAST;
         checkoutPanel.add(new JLabel("Montant donné par le client:"), gbc);
-        gbc.gridx = 1;
-        gbc.gridy = row;
-        gbc.anchor = GridBagConstraints.WEST;
+        gbc.gridx = 1; gbc.gridy = row; gbc.weightx = 1.0; gbc.anchor = GridBagConstraints.WEST;
         montantDonneField = new JTextField(10);
-        montantDonneField.addActionListener(e -> calculateChange());
+        montantDonneField.addActionListener(e -> calculateChange()); 
         checkoutPanel.add(montantDonneField, gbc);
         row++;
 
-        gbc.gridx = 0;
-        gbc.gridy = row;
-        gbc.anchor = GridBagConstraints.EAST;
+        // Monnaie à rendre
+        gbc.gridx = 0; gbc.gridy = row; gbc.anchor = GridBagConstraints.EAST;
         checkoutPanel.add(new JLabel("Monnaie à rendre:"), gbc);
-        gbc.gridx = 1;
-        gbc.gridy = row;
-        gbc.anchor = GridBagConstraints.WEST;
+        gbc.gridx = 1; gbc.gridy = row; gbc.weightx = 1.0; gbc.anchor = GridBagConstraints.WEST;
         monnaieARendreLabel = new JLabel("0.00 FCFA");
         monnaieARendreLabel.setFont(new Font("Arial", Font.BOLD, 16));
         monnaieARendreLabel.setForeground(Color.DARK_GRAY);
         checkoutPanel.add(monnaieARendreLabel, gbc);
         row++;
 
-        gbc.gridx = 0;
-        gbc.gridy = row;
-        gbc.gridwidth = 2;
-        gbc.anchor = GridBagConstraints.CENTER;
+        // Bouton Finaliser Vente
+        gbc.gridx = 0; gbc.gridy = row; gbc.gridwidth = 2; gbc.anchor = GridBagConstraints.CENTER;
         finaliserVenteButton = new JButton("Finaliser la Vente");
         finaliserVenteButton.setFont(new Font("Arial", Font.BOLD, 18));
-        finaliserVenteButton.setBackground(new Color(0, 150, 0));
+        finaliserVenteButton.setBackground(new Color(34, 139, 34)); 
         finaliserVenteButton.setForeground(Color.WHITE);
         finaliserVenteButton.addActionListener(e -> finalizeSale());
         checkoutPanel.add(finaliserVenteButton, gbc);
         row++;
 
-        gbc.gridx = 0;
-        gbc.gridy = row;
-        gbc.gridwidth = 2;
-        gbc.anchor = GridBagConstraints.CENTER;
+        // Message Label
+        gbc.gridx = 0; gbc.gridy = row; gbc.gridwidth = 2; gbc.anchor = GridBagConstraints.CENTER;
         messageLabel = new JLabel(" ");
+        messageLabel.setFont(new Font("Arial", Font.PLAIN, 12));
         messageLabel.setForeground(Color.RED);
         checkoutPanel.add(messageLabel, gbc);
-        row++;
 
         add(checkoutPanel, BorderLayout.SOUTH);
 
+        // Initialisations
         refreshProductSelectionTable();
-        updateCartTableAndTotal();
+        loadAssurancesIntoComboBox(); 
+        updateCartTableAndTotal(); 
     }
+
+    // --- Méthodes de gestion de l'interface et du panier ---
 
     public void setCurrentUser(Utilisateur user) {
         this.currentUser = user;
     }
 
-    private void searchProducts() throws SQLException {
-        String critere = searchField.getText().trim();
-        productSelectionTableModel.setRowCount(0);
-
-        List<Produit> produits = pharmacie.rechercherProduits(critere);
-        for (Produit p : produits) {
-            productSelectionTableModel.addRow(new Object[] {
-                    p.getReference(),
-                    p.getNom(),
-                    String.format("%.2f", p.calculerPrixTTC()),
-                    p.getQuantite()
-            });
-        }
-        messageLabel.setText("Recherche terminée. " + produits.size() + " produit(s) trouvé(s).");
-        messageLabel.setForeground(Color.BLACK);
-    }
-
+    /**
+     * Charge tous les produits disponibles dans la table de sélection.
+     */
     public void refreshProductSelectionTable() {
-        productSelectionTableModel.setRowCount(0);
-        searchField.setText("");
+        productSelectionTableModel.setRowCount(0); 
+        searchField.setText(""); 
         try {
             List<Produit> allProducts = pharmacie.getProduits();
             for (Produit p : allProducts) {
                 productSelectionTableModel.addRow(new Object[] {
-                        p.getReference(),
-                        p.getNom(),
-                        String.format("%.2f", p.calculerPrixTTC()),
-                        p.getQuantite()
+                    p.getReference(),
+                    p.getNom(),
+                    p.calculerPrixTTC(), 
+                    p.getQuantite(),
+                    p.isEstRemboursable()
                 });
             }
         } catch (SQLException e) {
-            messageLabel.setText("Erreur lors du chargement des produits disponibles: " + e.getMessage());
-            messageLabel.setForeground(Color.RED);
+            setMessage("Erreur lors du chargement des produits disponibles: " + e.getMessage(), Color.RED);
             e.printStackTrace();
         }
     }
 
+    /**
+     * Recherche les produits selon un critère (nom ou référence) et met à jour la table de sélection.
+     */
+    private void searchProducts() throws SQLException {
+        String critere = searchField.getText().trim();
+        productSelectionTableModel.setRowCount(0); 
+    
+        List<Produit> produits = pharmacie.rechercherProduits(critere);
+        for (Produit p : produits) {
+            productSelectionTableModel.addRow(new Object[] {
+                p.getReference(),
+                p.getNom(),
+                p.calculerPrixTTC(),
+                p.getQuantite(),
+                p.isEstRemboursable()
+            });
+        }
+        setMessage("Recherche terminée. " + produits.size() + " produit(s) trouvé(s).", Color.BLACK);
+    }
+
+    /**
+     * Ajoute le produit sélectionné à la table du panier.
+     */
     private void addSelectedProductToCart() {
         int selectedRow = productSelectionTable.getSelectedRow();
         if (selectedRow == -1) {
-            messageLabel.setText("Veuillez sélectionner un produit à ajouter au panier.");
-            messageLabel.setForeground(Color.ORANGE);
+            setMessage("Veuillez sélectionner un produit à ajouter au panier.", Color.ORANGE);
             return;
         }
 
@@ -250,27 +324,31 @@ public class VentePanel extends JPanel {
             String reference = (String) productSelectionTableModel.getValueAt(selectedRow, 0);
             int quantityToAdd = Integer.parseInt(quantityToAddField.getText().trim());
 
+            if (quantityToAdd <= 0) {
+                setMessage("La quantité à ajouter doit être un nombre positif.", Color.RED);
+                return;
+            }
+
             String errorMessage = panier.ajouterArticle(reference, quantityToAdd);
 
             if (errorMessage == null) {
-                messageLabel.setText("Produit '" + reference + "' ajouté au panier.");
-                messageLabel.setForeground(Color.BLUE);
-                updateCartTableAndTotal();
+                setMessage("Produit '" + reference + "' ajouté au panier.", Color.BLUE);
+                updateCartTableAndTotal(); 
             } else {
-                messageLabel.setText("Erreur ajout panier: " + errorMessage);
-                messageLabel.setForeground(Color.RED);
+                setMessage("Erreur ajout panier: " + errorMessage, Color.RED);
             }
         } catch (NumberFormatException ex) {
-            messageLabel.setText("Veuillez entrer une quantité numérique valide.");
-            messageLabel.setForeground(Color.RED);
+            setMessage("Veuillez entrer une quantité numérique valide.", Color.RED);
         }
     }
 
+    /**
+     * Retire l'article sélectionné du panier.
+     */
     private void removeSelectedProductFromCart() {
         int selectedRow = cartTable.getSelectedRow();
         if (selectedRow == -1) {
-            messageLabel.setText("Veuillez sélectionner un article à retirer du panier.");
-            messageLabel.setForeground(Color.ORANGE);
+            setMessage("Veuillez sélectionner un article à retirer du panier.", Color.ORANGE);
             return;
         }
 
@@ -279,49 +357,110 @@ public class VentePanel extends JPanel {
         boolean success = panier.supprimerLigne(referenceToRemove);
 
         if (success) {
-            messageLabel.setText("Article '" + referenceToRemove + "' retiré du panier.");
-            messageLabel.setForeground(Color.BLUE);
-            updateCartTableAndTotal();
+            setMessage("Article '" + referenceToRemove + "' retiré du panier.", Color.BLUE);
+            updateCartTableAndTotal(); 
         } else {
-            messageLabel.setText("Erreur lors du retrait de l'article du panier.");
-            messageLabel.setForeground(Color.RED);
+            setMessage("Erreur lors du retrait de l'article du panier.", Color.RED);
         }
     }
 
+    /**
+     * Vide complètement le panier et réinitialise les champs de paiement.
+     */
     private void clearCart() {
         panier.viderPanier();
         updateCartTableAndTotal();
-        messageLabel.setText("Panier vidé.");
-        messageLabel.setForeground(Color.BLUE);
+        setMessage("Panier vidé.", Color.BLUE);
         montantDonneField.setText("");
         monnaieARendreLabel.setText("0.00 FCFA");
     }
 
+    /**
+     * Met à jour la table du panier et déclenche le calcul des totaux.
+     */
     private void updateCartTableAndTotal() {
-        cartTableModel.setRowCount(0);
+        cartTableModel.setRowCount(0); 
         for (LigneFacture ligne : panier.getLignesPanier()) {
             Produit p = ligne.getProduit();
             cartTableModel.addRow(new Object[] {
-                    p.getReference(),
-                    p.getNom(),
-                    ligne.getQuantite(),
-                    String.format("%.2f", ligne.getPrixUnitaire()),
-                    String.format("%.2f", ligne.getSousTotal())
+                p.getReference(),
+                p.getNom(),
+                ligne.getQuantite(),
+                ligne.getPrixUnitaire(), 
+                ligne.getSousTotal(),
+                p.isEstRemboursable()
             });
         }
-        totalLabel.setText(String.format("%.2f FCFA", panier.calculerTotalPanier()));
-        calculateChange();
+        calculateTotalsWithAssurance(); 
+        calculateChange(); 
     }
 
+    /**
+     * Charge les assurances sociales disponibles dans le ComboBox.
+     */
+    private void loadAssurancesIntoComboBox() {
+        assuranceComboBox.removeAllItems();
+        assuranceComboBox.addItem(null); 
+        try {
+            List<AssuranceSocial> assurances = pharmacie.getAllAssurancesSociales();
+            for (AssuranceSocial ass : assurances) {
+                assuranceComboBox.addItem(ass);
+            }
+        } catch (SQLException e) {
+            setMessage("Erreur lors du chargement des assurances: " + e.getMessage(), Color.RED);
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Calcule tous les totaux de la vente, y compris la prise en charge par l'assurance.
+     */
+    private void calculateTotalsWithAssurance() {
+        double totalTTC = panier.calculerTotalPanier();
+        totalTTCAvantAssuranceLabel.setText(String.format("%.2f FCFA", totalTTC));
+
+        AssuranceSocial selectedAssurance = (AssuranceSocial) assuranceComboBox.getSelectedItem();
+        double montantRemboursable = 0.0;
+        double montantPrisEnCharge = 0.0;
+        double montantRestantAPayer = totalTTC; 
+
+        if (selectedAssurance != null) {
+            for (LigneFacture ligne : panier.getLignesPanier()) {
+                if (ligne.getProduit().isEstRemboursable()) {
+                    montantRemboursable += ligne.getSousTotal();
+                }
+            }
+
+            montantPrisEnCharge = montantRemboursable * selectedAssurance.getTauxDePriseEnCharge();
+            montantRestantAPayer = totalTTC - montantPrisEnCharge;
+            if (montantRestantAPayer < 0) {
+                montantRestantAPayer = 0;
+            }
+        }
+
+        // Met à jour le champ numérique directement
+        this.currentClientAmountToPay = montantRestantAPayer;
+
+        montantPrisEnChargeLabel.setText(String.format("%.2f FCFA", montantPrisEnCharge));
+        montantClientAPayerLabel.setText(String.format("%.2f FCFA", montantRestantAPayer));
+        
+        calculateChange(); 
+    }
+
+    /**
+     * Calcule et affiche la monnaie à rendre au client.
+     */
     private void calculateChange() {
-        double total = panier.calculerTotalPanier();
+        // Utilise le champ numérique directement
+        double totalClientAPayer = this.currentClientAmountToPay;
+        
         try {
             double montantDonne = Double.parseDouble(montantDonneField.getText().trim());
-            if (montantDonne < total) {
+            if (montantDonne < totalClientAPayer) {
                 monnaieARendreLabel.setText("Montant insuffisant !");
                 monnaieARendreLabel.setForeground(Color.RED);
             } else {
-                double monnaie = montantDonne - total;
+                double monnaie = montantDonne - totalClientAPayer;
                 monnaieARendreLabel.setText(String.format("%.2f FCFA", monnaie));
                 monnaieARendreLabel.setForeground(Color.BLUE);
             }
@@ -331,132 +470,179 @@ public class VentePanel extends JPanel {
         }
     }
 
+    /**
+     * Finalise la vente: crée une facture, enregistre les lignes, décrémente le stock.
+     */
     private void finalizeSale() {
         if (panier.estVide()) {
-            messageLabel.setText("Le panier est vide. Impossible de finaliser la vente.");
-            messageLabel.setForeground(Color.ORANGE);
+            setMessage("Le panier est vide. Impossible de finaliser la vente.", Color.ORANGE);
             return;
         }
 
+        // Utilise le champ numérique directement
+        double montantFinalClientAPayer = this.currentClientAmountToPay;
+
         try {
-            double totalAPayer = panier.calculerTotalPanier();
             double montantDonne = Double.parseDouble(montantDonneField.getText().trim());
 
-            if (montantDonne < totalAPayer) {
-                messageLabel.setText("Le montant donné est insuffisant. Veuillez ajuster le paiement.");
-                messageLabel.setForeground(Color.RED);
+            if (montantDonne < montantFinalClientAPayer) {
+                setMessage("Le montant donné (" + String.format("%.2f", montantDonne) + " FCFA) est insuffisant. Le client doit payer " + String.format("%.2f", montantFinalClientAPayer) + " FCFA.", Color.RED);
                 return;
             }
 
             for (LigneFacture ligne : panier.getLignesPanier()) {
                 Produit produitEnStock = pharmacie.getProduitByReference(ligne.getProduit().getReference());
                 if (produitEnStock == null || produitEnStock.getQuantite() < ligne.getQuantite()) {
-                    messageLabel.setText("Stock insuffisant pour le produit: " + ligne.getProduit().getNom());
-                    messageLabel.setForeground(Color.RED);
+                    setMessage("Stock insuffisant pour le produit: " + ligne.getProduit().getNom() + ". Stock disponible: " + (produitEnStock != null ? produitEnStock.getQuantite() : "0"), Color.RED);
                     return;
                 }
             }
 
             if (currentUser == null) {
-                messageLabel.setText("Erreur: Aucun utilisateur connecté pour finaliser la vente.");
-                messageLabel.setForeground(Color.RED);
+                setMessage("Erreur: Aucun utilisateur connecté pour finaliser la vente. Veuillez vous connecter.", Color.RED);
                 return;
             }
-            Facture nouvelleFacture = new Facture(currentUser);
-            nouvelleFacture.setLignesFacture(panier.getLignesPanier());
-            nouvelleFacture.calculerMontantTotal();
+
+            String numeroFacture = "FACT-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase(); 
+            LocalDateTime dateFacture = LocalDateTime.now();
+            double totalHtFacture = panier.calculerTotalPanier(); 
+            double totalTTCFacture = panier.calculerTotalPanier(); 
+            
+            AssuranceSocial selectedAssurance = (AssuranceSocial) assuranceComboBox.getSelectedItem();
+            double montantPrisEnChargeParAssurance = 0.0;
+            double montantRestantADueClient = totalTTCFacture; 
+
+            if (selectedAssurance != null) {
+                double montantRemboursableDansPanier = 0.0;
+                for(LigneFacture ligne : panier.getLignesPanier()){
+                    if(ligne.getProduit().isEstRemboursable()){
+                        montantRemboursableDansPanier += ligne.getSousTotal();
+                    }
+                }
+                montantPrisEnChargeParAssurance = montantRemboursableDansPanier * selectedAssurance.getTauxDePriseEnCharge();
+                montantRestantADueClient = totalTTCFacture - montantPrisEnChargeParAssurance;
+                if(montantRestantADueClient < 0) { 
+                    montantRestantADueClient = 0;
+                }
+            }
+
+            Facture nouvelleFacture = new Facture(
+                numeroFacture,
+                dateFacture,
+                currentUser,
+                panier.getLignesPanier(), 
+                totalHtFacture,
+                totalTTCFacture, 
+                selectedAssurance, 
+                montantPrisEnChargeParAssurance,
+                montantRestantADueClient 
+            );
 
             boolean success = pharmacie.finaliserVente(nouvelleFacture);
 
             if (success) {
-                messageLabel
-                        .setText("Vente finalisée avec succès ! Facture #" + nouvelleFacture.getId() + " enregistrée.");
-                messageLabel.setForeground(Color.GREEN);
+                setMessage("Vente finalisée avec succès ! Facture #" + nouvelleFacture.getNumeroFacture() + " enregistrée.", Color.GREEN);
 
-                String factureText = generateFactureText(nouvelleFacture);
+                String factureText = generateFactureText(nouvelleFacture, montantDonne); 
                 int dialogResult = JOptionPane.showConfirmDialog(this,
-                        factureText + "\n\nVoulez-vous copier la facture dans le presse-papiers ?",
-                        "Facture Générée", JOptionPane.YES_NO_OPTION, JOptionPane.INFORMATION_MESSAGE);
+                    factureText + "\n\nVoulez-vous copier la facture dans le presse-papiers ?",
+                    "Facture Générée", JOptionPane.YES_NO_OPTION, JOptionPane.INFORMATION_MESSAGE);
                 if (dialogResult == JOptionPane.YES_OPTION) {
                     copyToClipboard(factureText);
-                    JOptionPane.showMessageDialog(this, "Facture copiée dans le presse-papiers !");
+                    JOptionPane.showMessageDialog(this, "Facture copiée dans le presse-papiers !", "Copie Réussie", JOptionPane.INFORMATION_MESSAGE);
                 }
 
-                clearCart();
-                refreshProductSelectionTable();
+                clearCart(); 
+                refreshProductSelectionTable(); 
 
                 if (dataListener != null) {
-                    dataListener.onPharmacieDataChanged();
+                    dataListener.onPharmacieDataChanged(); 
                 }
             } else {
-                messageLabel.setText("Erreur: Impossible de finaliser la vente.");
-                messageLabel.setForeground(Color.RED);
+                setMessage("Erreur: Impossible de finaliser la vente. Problème de base de données ou de stock.", Color.RED);
             }
 
         } catch (NumberFormatException ex) {
-            messageLabel.setText("Veuillez entrer un montant valide pour le paiement.");
-            messageLabel.setForeground(Color.RED);
+            setMessage("Veuillez entrer un montant valide pour le paiement.", Color.RED);
         } catch (SQLException ex) {
-            messageLabel.setText("Erreur de base de données lors de la finalisation: " + ex.getMessage());
-            messageLabel.setForeground(Color.RED);
+            setMessage("Erreur de base de données lors de la finalisation: " + ex.getMessage(), Color.RED);
             ex.printStackTrace();
         } catch (Exception ex) {
-            messageLabel.setText("Une erreur inattendue est survenue: " + ex.getMessage());
-            messageLabel.setForeground(Color.RED);
+            setMessage("Une erreur inattendue est survenue: " + ex.getMessage(), Color.RED);
             ex.printStackTrace();
         }
     }
 
-    private String generateFactureText(Facture facture) {
+    /**
+     * Génère le texte de la facture pour l'impression ou la copie.
+     * Prend en compte les détails de l'assurance si appliquée.
+     * @param facture L'objet Facture finalisée.
+     * @param montantDonne Le montant donné par le client.
+     * @return Le texte formaté de la facture.
+     */
+    private String generateFactureText(Facture facture, double montantDonne) {
         StringBuilder sb = new StringBuilder();
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
 
-        sb.append("========================================================\n");
-        sb.append("                 FACTURE DE VENTE                     \n");
-        sb.append("========================================================\n");
-        sb.append("Pharmacie: ").append(pharmacie.getNom()).append("\n");
-        sb.append("Adresse:   ").append(pharmacie.getAdresse()).append("\n");
-        sb.append("--------------------------------------------------------\n");
-        sb.append("Facture ID: ").append(facture.getId()).append("\n");
-        sb.append("Numéro Facture: ").append(facture.getNumeroFacture()).append("\n"); // NOUVEAU: Ajout du numéro de
-                                                                                       // facture
-        sb.append("Date:       ").append(facture.getDateFacture().format(formatter)).append("\n");
-        sb.append("Vendu par:  ").append(facture.getUtilisateur().getNomUtilisateur()).append(" (ID: ")
-                .append(facture.getUtilisateur().getId()).append(")\n");
-        sb.append("--------------------------------------------------------\n");
-        sb.append(String.format("%-25s %8s %12s %15s\n", "Produit", "Qté", "Prix U.", "Sous-Total"));
-        sb.append("--------------------------------------------------------\n");
+        sb.append("=====================================================\n");
+        sb.append("         PHARMACIE ").append(pharmacie.getNom().toUpperCase()).append("       \n");
+        sb.append("         Adresse: ").append(pharmacie.getAdresse()).append("       \n");
+        sb.append("=====================================================\n");
+        sb.append("                FACTURE DE VENTE                     \n");
+        sb.append("-----------------------------------------------------\n");
+        sb.append(String.format("Facture N°: %s\n", facture.getNumeroFacture()));
+        sb.append(String.format("Date:       %s\n", facture.getDateFacture().format(formatter)));
+        sb.append(String.format("Vendu par:  %s (ID: %d)\n", facture.getUtilisateur().getNomUtilisateur(), facture.getUtilisateur().getId()));
+        sb.append("-----------------------------------------------------\n");
+        sb.append(String.format("%-25s %5s %10s %10s\n", "Produit", "Qté", "Prix U.", "Sous-Total"));
+        sb.append("-----------------------------------------------------\n");
 
         for (LigneFacture ligne : facture.getLignesFacture()) {
-            sb.append(String.format("%-25.25s %8d %12.2f %15.2f\n",
-                    ligne.getProduit().getNom(),
-                    ligne.getQuantite(),
-                    ligne.getPrixUnitaire(),
-                    ligne.getSousTotal()));
+            sb.append(String.format("%-25.25s %5d %10.2f %10.2f\n",
+                ligne.getProduit().getNom(),
+                ligne.getQuantite(),
+                ligne.getProduit().calculerPrixTTC(), 
+                ligne.getSousTotal()));
         }
-        sb.append("--------------------------------------------------------\n");
-        sb.append(String.format("%-46s %15.2f FCFA\n", "TOTAL HORS TAXE (HT):", facture.getTotalHt())); // NOUVEAU:
-                                                                                                        // Affichage
-                                                                                                        // Total HT
-        sb.append(String.format("%-46s %15.2f FCFA\n", "TOTAL À PAYER (TTC):", facture.getMontantTotal()));
+        sb.append("-----------------------------------------------------\n");
+        sb.append(String.format("%-40s %10.2f FCFA\n", "TOTAL HORS TAXE (HT):", facture.getTotalHt()));
+        sb.append(String.format("%-40s %10.2f FCFA\n", "TOTAL GLOBAL (TTC):", facture.getMontantTotal())); 
 
-        try {
-            double montantDonne = Double.parseDouble(montantDonneField.getText().trim());
-            double monnaie = montantDonne - facture.getMontantTotal();
-            sb.append(String.format("%-46s %15.2f FCFA\n", "Montant payé:", montantDonne));
-            sb.append(String.format("%-46s %15.2f FCFA\n", "Monnaie à rendre:", monnaie));
-        } catch (NumberFormatException e) {
-            sb.append(String.format("%-46s %15s\n", "Montant payé:", "N/A"));
-            sb.append(String.format("%-46s %15s\n", "Monnaie à rendre:", "N/A (Erreur de saisie)"));
+        if (facture.getAssuranceSocial() != null) {
+            sb.append("-----------------------------------------------------\n");
+            sb.append(String.format("Assurance Sociale: %s\n", facture.getAssuranceSocial().getNom_assurance()));
+            sb.append(String.format("Taux Prise en Charge: %.0f%%\n", facture.getAssuranceSocial().getTauxDePriseEnCharge() * 100));
+            sb.append(String.format("Montant Pris en Charge: %10.2f FCFA\n", facture.getMontantPrisEnChargeAssurance()));
         }
-
-        sb.append("========================================================\n");
-        sb.append("              MERCI DE VOTRE VISITE!                  \n");
-        sb.append("========================================================\n");
+        
+        sb.append("-----------------------------------------------------\n");
+        sb.append(String.format("%-40s %10.2f FCFA\n", "MONTANT CLIENT À PAYER:", facture.getMontantRestantAPayerClient()));
+        sb.append(String.format("%-40s %10.2f FCFA\n", "Montant Payé:", montantDonne));
+        
+        double monnaieARendre = montantDonne - facture.getMontantRestantAPayerClient();
+        sb.append(String.format("%-40s %10.2f FCFA\n", "Monnaie à Rendre:", monnaieARendre));
+        
+        sb.append("=====================================================\n");
+        sb.append("           MERCI DE VOTRE VISITE!                    \n");
+        sb.append("=====================================================\n");
 
         return sb.toString();
     }
 
+    /**
+     * Affiche un message à l'utilisateur avec la couleur spécifiée.
+     * @param msg Le message à afficher.
+     * @param color La couleur du texte du message.
+     */
+    private void setMessage(String msg, Color color) {
+        messageLabel.setText(msg);
+        messageLabel.setForeground(color);
+    }
+
+    /**
+     * Copie le texte donné dans le presse-papiers du système.
+     * @param text Le texte à copier.
+     */
     private void copyToClipboard(String text) {
         StringSelection stringSelection = new StringSelection(text);
         Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();

@@ -5,45 +5,32 @@ import java.io.Serializable;
 public class ProduitParaPharmacie extends Produit implements Serializable {
     private static final long serialVersionUID = 1L;
 
-    private String categorie;
+    private String categorie; // Ex: "Soin Visage", "Hygiène Corporelle", "Compléments Alimentaires"
 
-    // --- CONSTRUCTEURS ---
-
-    // Constructeur pour un NOUVEAU ProduitParaPharmacie (sans ID)
-    public ProduitParaPharmacie(String nom, String reference, String description, double prixHt, int quantite,
-            String categorie) {
-        super(nom, reference, description, prixHt, quantite);
+    // Constructeur complet (avec ID, pour la lecture depuis la BDD)
+    public ProduitParaPharmacie(int id, String nom, String reference, String description, double prixHt, int quantite, String categorie) {
+        super(id, nom, reference, description, prixHt, quantite, "PARAPHARMACIE", false); // Les produits parapharmacie ne sont généralement PAS remboursables
         this.categorie = categorie;
     }
 
-    // Constructeur pour un ProduitParaPharmacie EXISTANT (avec ID)
-    public ProduitParaPharmacie(int id, String nom, String reference, String description, double prixHt, int quantite,
-            String categorie) {
-        super(id, nom, reference, description, prixHt, quantite);
+    // Constructeur pour la création d'un nouveau produit parapharmacie (sans ID)
+    public ProduitParaPharmacie(String nom, String reference, String description, double prixHt, int quantite, String categorie) {
+        super(nom, reference, description, prixHt, quantite, "PARAPHARMACIE", false); // Les produits parapharmacie ne sont généralement PAS remboursables
         this.categorie = categorie;
     }
 
-    // --- GETTERS ---
+    // Getter
     public String getCategorie() {
         return categorie;
     }
 
-    // --- SETTERS ---
+    // Setter
     public void setCategorie(String categorie) {
         this.categorie = categorie;
     }
 
-    // --- Méthodes Spécifiques ---
-    @Override
-    public double calculerPrixTTC() {
-        return getPrixHt() * (1 + TAUX_TVA_STANDARD);
-    }
-
     @Override
     public String toString() {
-        return super.toString() +
-                ", Type: Parapharmacie" +
-                ", Catégorie: " + categorie + // Affiche la catégorie
-                ", Prix TTC: " + String.format("%.2f", calculerPrixTTC());
+        return "Parapharmacie: " + super.toString() + ", Catégorie: " + categorie;
     }
 }

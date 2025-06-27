@@ -2,9 +2,9 @@ package model;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 public class Facture implements Serializable {
     private static final long serialVersionUID = 1L;
@@ -12,37 +12,44 @@ public class Facture implements Serializable {
     private int id;
     private String numeroFacture;
     private LocalDateTime dateFacture;
-    private double montantTotal;
-    private double totalHt;
-    private Utilisateur utilisateur;
+    private Utilisateur utilisateur; // L'utilisateur (vendeur) qui a créé la facture
     private List<LigneFacture> lignesFacture;
+    private double totalHt;
+    private double montantTotal; // Montant total TTC de la facture
 
-    // Taux de TVA (exemple: 18%)
-    private static final double TAUX_TVA = 0.18;
+    // NOUVEAU: Champs pour la gestion des assurances sociales
+    protected AssuranceSocial assuranceSocial; // Assurance utilisée (peut être null si pas d'assurance)
+    private double montantPrisEnChargeAssurance; // Montant pris en charge par l'assurance
+    private double montantRestantAPayerClient; // Montant restant à payer par le client
 
-    // Constructeur pour créer une nouvelle facture
-    public Facture(Utilisateur utilisateur) {
-        this.dateFacture = LocalDateTime.now();
-        this.montantTotal = 0.0;
-        this.totalHt = 0.0;
-        this.utilisateur = utilisateur;
-        this.lignesFacture = new ArrayList<>();
-        this.numeroFacture = null;
-    }
-
-    // Constructeur pour charger une facture existante depuis la DB (avec totalHt)
-    public Facture(int id, String numeroFacture, LocalDateTime dateFacture, double montantTotal, double totalHt,
-            Utilisateur utilisateur) {
+    // Constructeur complet pour la lecture depuis la BDD
+    public Facture(int id, String numeroFacture, LocalDateTime dateFacture, Utilisateur utilisateur, double totalHt, double montantTotal, AssuranceSocial assuranceSocial, double montantPrisEnChargeAssurance, double montantRestantAPayerClient) {
         this.id = id;
         this.numeroFacture = numeroFacture;
         this.dateFacture = dateFacture;
-        this.montantTotal = montantTotal;
-        this.totalHt = totalHt;
         this.utilisateur = utilisateur;
-        this.lignesFacture = new ArrayList<>();
+        this.lignesFacture = new ArrayList<>(); // Initialisé vide, sera rempli par le DAO
+        this.totalHt = totalHt;
+        this.montantTotal = montantTotal;
+        this.assuranceSocial = assuranceSocial;
+        this.montantPrisEnChargeAssurance = montantPrisEnChargeAssurance;
+        this.montantRestantAPayerClient = montantRestantAPayerClient;
     }
 
-    // --- Getters ---
+    // Constructeur pour la création d'une nouvelle facture (ID sera auto-généré)
+    // Permet de passer directement l'assurance et les montants calculés.
+    public Facture(String numeroFacture, LocalDateTime dateFacture, Utilisateur utilisateur, List<LigneFacture> lignesFacture, double totalHt, double montantTotal, AssuranceSocial assuranceSocial, double montantPrisEnChargeAssurance, double montantRestantAPayerClient) {
+        this(0, numeroFacture, dateFacture, utilisateur, totalHt, montantTotal, assuranceSocial, montantPrisEnChargeAssurance, montantRestantAPayerClient);
+        this.lignesFacture = new ArrayList<>(lignesFacture); // Copie des lignes passées
+    }
+
+    // Ancien constructeur si toujours utilisé (sera mis à jour pour les nouveaux champs)
+    public Facture(int id, String numeroFacture, LocalDateTime dateFacture, Utilisateur utilisateur, double totalHt, double montantTotal) {
+        this(id, numeroFacture, dateFacture, utilisateur, totalHt, montantTotal, null, 0.0, montantTotal); // Par défaut sans assurance
+    }
+
+
+    // Getters
     public int getId() {
         return id;
     }
@@ -55,15 +62,6 @@ public class Facture implements Serializable {
         return dateFacture;
     }
 
-    public double getMontantTotal() {
-        return montantTotal;
-    }
-
-    // NOUVEAU: Getter pour totalHt
-    public double getTotalHt() {
-        return totalHt;
-    }
-
     public Utilisateur getUtilisateur() {
         return utilisateur;
     }
@@ -72,7 +70,28 @@ public class Facture implements Serializable {
         return lignesFacture;
     }
 
-    // --- Setters ---
+    public double getTotalHt() {
+        return totalHt;
+    }
+
+    public double getMontantTotal() {
+        return montantTotal;
+    }
+
+    
+    public AssuranceSocial getAssuranceSocial() {
+        return assuranceSocial;
+    }
+
+    public double getMontantPrisEnChargeAssurance() {
+        return montantPrisEnChargeAssurance;
+    }
+
+    public double getMontantRestantAPayerClient() {
+        return montantRestantAPayerClient;
+    }
+
+    // Setters
     public void setId(int id) {
         this.id = id;
     }
@@ -85,52 +104,55 @@ public class Facture implements Serializable {
         this.dateFacture = dateFacture;
     }
 
-    public void setMontantTotal(double montantTotal) {
-        this.montantTotal = montantTotal;
-        this.totalHt = montantTotal / (1 + TAUX_TVA);
+    public void setUtilisateur(Utilisateur utilisateur) {
+        this.utilisateur = utilisateur;
+    }
+
+    public void setLignesFacture(List<LigneFacture> lignesFacture) {
+        this.lignesFacture = new ArrayList<>(lignesFacture); // Utilise une copie
     }
 
     public void setTotalHt(double totalHt) {
         this.totalHt = totalHt;
     }
 
-    public void setUtilisateur(Utilisateur utilisateur) {
-        this.utilisateur = utilisateur;
+    public void setMontantTotal(double montantTotal) {
+        this.montantTotal = montantTotal;
     }
 
-    public void setLignesFacture(List<LigneFacture> lignesFacture) {
-        this.lignesFacture = lignesFacture;
-        calculerMontantTotal();
+    // NOUVEAU: Setters pour les informations d'assurance
+    public void setAssuranceSocial(AssuranceSocial assuranceSociale) {
+        this.assuranceSocial = assuranceSociale;
     }
 
-    // --- Méthodes métier ---
-
-    public void ajouterLigne(LigneFacture ligne) {
-        if (ligne != null) {
-            this.lignesFacture.add(ligne);
-            calculerMontantTotal();
-        }
+    public void setMontantPrisEnChargeAssurance(double montantPrisEnChargeAssurance) {
+        this.montantPrisEnChargeAssurance = montantPrisEnChargeAssurance;
     }
 
-    // MODIFIÉ: Calcule montantTotal et totalHt
-    public void calculerMontantTotal() {
-        this.montantTotal = 0.0;
-        for (LigneFacture ligne : lignesFacture) {
-            this.montantTotal += ligne.getSousTotal();
-        }
-        this.totalHt = this.montantTotal / (1 + TAUX_TVA);
+    public void setMontantRestantAPayerClient(double montantRestantAPayerClient) {
+        this.montantRestantAPayerClient = montantRestantAPayerClient;
     }
 
     @Override
     public String toString() {
-        return "Facture{" +
-                "id=" + id +
-                ", numeroFacture='" + numeroFacture + '\'' +
-                ", dateFacture=" + dateFacture.format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")) +
-                ", montantTotalTTC=" + String.format("%.2f", montantTotal) +
-                ", totalHt=" + String.format("%.2f", totalHt) +
-                ", utilisateur=" + (utilisateur != null ? utilisateur.getNomUtilisateur() : "N/A") +
-                ", nbLignes=" + lignesFacture.size() +
-                '}';
+        String assuranceInfo = (assuranceSocial != null) ? ", Assurance: " + assuranceSocial.getNom_assurance() + " (Prise en charge: " + String.format("%.2f", montantPrisEnChargeAssurance) + " FCFA, Reste client: " + String.format("%.2f", montantRestantAPayerClient) + " FCFA)" : "";
+        return "Facture n°" + numeroFacture +
+               " du " + dateFacture.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")) +
+               " par " + utilisateur.getNomUtilisateur() +
+               ", Total TTC: " + String.format("%.2f", montantTotal) + " FCFA" +
+               assuranceInfo;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Facture facture = (Facture) o;
+        return id == facture.id && Objects.equals(numeroFacture, facture.numeroFacture);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, numeroFacture);
     }
 }

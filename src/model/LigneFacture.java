@@ -5,34 +5,34 @@ import java.io.Serializable;
 public class LigneFacture implements Serializable {
     private static final long serialVersionUID = 1L;
 
-    private int id;
-    private int idFacture;
-    private Produit produit;
-    private int quantite;
-    private double prixUnitaire;
-    private double sousTotal;
-
-    // Constructeur pour créer une nouvelle ligne de facture (sans ID, l'ID sera
-    // généré par la DB)
-    public LigneFacture(Produit produit, int quantite) {
-        this.produit = produit;
-        this.quantite = quantite;
-        this.prixUnitaire = produit.calculerPrixTTC();
-        this.sousTotal = this.prixUnitaire * this.quantite;
-    }
-
-    // Constructeur pour charger une ligne de facture existante depuis la DB (avec
-    // ID et idFacture)
-    public LigneFacture(int id, int idFacture, Produit produit, int quantite, double prixUnitaire, double sousTotal) {
+    private int id; // ID de la ligne de facture (auto-incrémenté par la BDD)
+    private int idFacture; // ID de la facture à laquelle cette ligne appartient
+    private Produit produit; // Le produit vendu
+    private int quantite; // Quantité de ce produit vendue
+    private double prixUnitaireHT; // Prix unitaire HT du produit au moment de la vente
+    private double prixUnitaire; // Prix unitaire TTC du produit au moment de la vente (utilisé pour sous-total)
+    private double sousTotal; 
+    
+    public LigneFacture(int id, int idFacture, Produit produit, int quantite, double prixUnitaireHT, double prixUnitaire, double sousTotal) {
         this.id = id;
         this.idFacture = idFacture;
         this.produit = produit;
         this.quantite = quantite;
-        this.prixUnitaire = prixUnitaire;
+        this.prixUnitaireHT = prixUnitaireHT;
+        this.prixUnitaire = prixUnitaire; // Prix TTC
         this.sousTotal = sousTotal;
     }
 
-    // --- Getters ---
+    public LigneFacture(Produit produit, int quantite, double prixUnitaireHT, double prixUnitaire) {
+        this(0, 0, produit, quantite, prixUnitaireHT, prixUnitaire, quantite * prixUnitaire);
+    }
+    
+    public LigneFacture(Produit produit, int quantite) {
+        this(0, 0, produit, quantite, produit.getPrixHt(), produit.calculerPrixTTC(), quantite * produit.calculerPrixTTC());
+    }
+
+
+    // Getters
     public int getId() {
         return id;
     }
@@ -49,7 +49,11 @@ public class LigneFacture implements Serializable {
         return quantite;
     }
 
-    public double getPrixUnitaire() {
+    public double getPrixUnitaireHT() {
+        return prixUnitaireHT;
+    }
+
+    public double getPrixUnitaire() { // C'est le prix unitaire TTC de la ligne
         return prixUnitaire;
     }
 
@@ -57,7 +61,7 @@ public class LigneFacture implements Serializable {
         return sousTotal;
     }
 
-    // --- Setters ---
+    // Setters
     public void setId(int id) {
         this.id = id;
     }
@@ -68,18 +72,21 @@ public class LigneFacture implements Serializable {
 
     public void setProduit(Produit produit) {
         this.produit = produit;
-        this.prixUnitaire = produit.calculerPrixTTC();
-        this.sousTotal = this.prixUnitaire * this.quantite;
     }
 
     public void setQuantite(int quantite) {
         this.quantite = quantite;
-        this.sousTotal = this.prixUnitaire * this.quantite;
+        // Recalculer le sous-total lorsque la quantité change
+        this.sousTotal = this.quantite * this.prixUnitaire;
     }
 
-    public void setPrixUnitaire(double prixUnitaire) {
+    public void setPrixUnitaireHT(double prixUnitaireHT) {
+        this.prixUnitaireHT = prixUnitaireHT;
+    }
+
+    public void setPrixUnitaire(double prixUnitaire) { // Setter pour le prix unitaire TTC
         this.prixUnitaire = prixUnitaire;
-        this.sousTotal = this.prixUnitaire * this.quantite;
+        this.sousTotal = this.quantite * this.prixUnitaire;
     }
 
     public void setSousTotal(double sousTotal) {
@@ -88,13 +95,8 @@ public class LigneFacture implements Serializable {
 
     @Override
     public String toString() {
-        return "LigneFacture{" +
-                "id=" + id +
-                ", idFacture=" + idFacture +
-                ", produit=" + (produit != null ? produit.getNom() : "N/A") +
-                ", quantite=" + quantite +
-                ", prixUnitaire=" + String.format("%.2f", prixUnitaire) +
-                ", sousTotal=" + String.format("%.2f", sousTotal) +
-                '}';
+        return "LigneFacture [ID=" + id + ", FactureID=" + idFacture + ", Produit=" + produit.getNom() + 
+               ", Quantité=" + quantite + ", PrixUHT=" + String.format("%.2f", prixUnitaireHT) +
+               ", PrixUTTC=" + String.format("%.2f", prixUnitaire) + ", SousTotal=" + String.format("%.2f", sousTotal) + "]";
     }
 }

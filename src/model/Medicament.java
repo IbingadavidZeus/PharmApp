@@ -8,25 +8,21 @@ public class Medicament extends Produit implements Serializable {
     private boolean generique;
     private boolean surOrdonnance;
 
-    // --- CONSTRUCTEURS ---
-
-    // Constructeur pour un NOUVEAU Medicament (sans ID, généré par la BDD)
-    public Medicament(String nom, String reference, String description, double prixHt, int quantite, boolean generique,
-            boolean surOrdonnance) {
-        super(nom, reference, description, prixHt, quantite);
+    // Constructeur complet (avec ID, pour la lecture depuis la BDD)
+    public Medicament(int id, String nom, String reference, String description, double prixHt, int quantite, boolean generique, boolean surOrdonnance) {
+        super(id, nom, reference, description, prixHt, quantite, "MEDICAMENT", true); // Les médicaments sont généralement remboursables
         this.generique = generique;
         this.surOrdonnance = surOrdonnance;
     }
 
-    // Constructeur pour un Medicament EXISTANT (avec ID, chargé depuis la BDD)
-    public Medicament(int id, String nom, String reference, String description, double prixHt, int quantite,
-            boolean generique, boolean surOrdonnance) {
-        super(id, nom, reference, description, prixHt, quantite);
+    // Constructeur pour la création d'un nouveau médicament (sans ID)
+    public Medicament(String nom, String reference, String description, double prixHt, int quantite, boolean generique, boolean surOrdonnance) {
+        super(nom, reference, description, prixHt, quantite, "MEDICAMENT", true); // Les médicaments sont généralement remboursables
         this.generique = generique;
         this.surOrdonnance = surOrdonnance;
     }
 
-    // --- GETTERS ---
+    // Getters
     public boolean isGenerique() {
         return generique;
     }
@@ -35,7 +31,7 @@ public class Medicament extends Produit implements Serializable {
         return surOrdonnance;
     }
 
-    // --- SETTERS ---
+    // Setters
     public void setGenerique(boolean generique) {
         this.generique = generique;
     }
@@ -44,20 +40,10 @@ public class Medicament extends Produit implements Serializable {
         this.surOrdonnance = surOrdonnance;
     }
 
-    // --- Méthodes Spécifiques ---
-
-    @Override
-    public double calculerPrixTTC() {
-        double tauxTvaMedicament = 0.055; // 5.5%
-        return getPrixHt() * (1 + tauxTvaMedicament);
-    }
-
     @Override
     public String toString() {
-        return super.toString() +
-                ", Type: Médicament" +
-                ", Générique: " + (generique ? "Oui" : "Non") +
-                ", Ordonnance: " + (surOrdonnance ? "Oui" : "Non") +
-                ", Prix TTC: " + String.format("%.2f", calculerPrixTTC());
+        return "Médicament: " + super.toString() +
+               ", Générique: " + (generique ? "Oui" : "Non") +
+               ", Ordonnance: " + (surOrdonnance ? "Oui" : "Non");
     }
 }

@@ -1,38 +1,46 @@
 package model;
 
 import java.io.Serializable;
+import java.util.Objects;
 
-public abstract class Produit implements Serializable {
+// Cette classe est la base pour Medicament et ProduitParaPharmacie
+public class Produit implements Serializable {
     private static final long serialVersionUID = 1L;
 
-    protected static final double TAUX_TVA_STANDARD = 0.18;
+    protected int id;
+    protected String nom;
+    protected String reference; 
+    protected String description;
+    protected double prixHt;
+    protected int quantite;
+    protected String typeProduit; 
+    protected boolean estRemboursable; // NOUVEAU: Indique si le produit est remboursable par les assurances
 
-    private int id;
-    private String nom;
-    private String reference;
-    private String description;
-    private double prixHt;
-    private int quantite;
-
-    // Constructeur pour un nouveau produit (sans ID, car il est généré par la BDD)
-    public Produit(String nom, String reference, String description, double prixHt, int quantite) {
+    // Constructeur complet (pour la lecture depuis la BDD)
+    public Produit(int id, String nom, String reference, String description, double prixHt, int quantite, String typeProduit, boolean estRemboursable) {
+        this.id = id;
         this.nom = nom;
         this.reference = reference;
         this.description = description;
         this.prixHt = prixHt;
         this.quantite = quantite;
-        this.id = 0;
+        this.typeProduit = typeProduit;
+        this.estRemboursable = estRemboursable; // Initialisation du nouveau champ
     }
 
-    // Constructeur pour un produit existant (avec ID, utilisé lors du chargement
-    // depuis la BDD)
-
-    public Produit(int id, String nom, String reference, String description, double prixHt, int quantite) {
-        this(nom, reference, description, prixHt, quantite);
-        this.id = id;
+    // Constructeur sans ID (pour la création d'un nouveau produit avant insertion en BDD)
+    public Produit(String nom, String reference, String description, double prixHt, int quantite, String typeProduit, boolean estRemboursable) {
+        this(0, nom, reference, description, prixHt, quantite, typeProduit, estRemboursable);
     }
 
-    // --- Getters ---
+    // Constructeur de base (si nécessaire pour des types génériques, mais Medicament/ParaPharmacie devraient être utilisés)
+    // ATTENTION: ce constructeur ne gère PAS estRemboursable, il sera donc FALSE par défaut
+    public Produit(int id, String nom, String reference, String description, double prixHt, int quantite, String typeProduit) {
+        this(id, nom, reference, description, prixHt, quantite, typeProduit, false); // Par défaut non remboursable
+    }
+
+
+    // Getters
     public int getId() {
         return id;
     }
@@ -57,7 +65,15 @@ public abstract class Produit implements Serializable {
         return quantite;
     }
 
-    // --- Setters ---
+    public String getTypeProduit() {
+        return typeProduit;
+    }
+
+    public boolean isEstRemboursable() { 
+        return estRemboursable;
+    }
+
+    // Setters
     public void setId(int id) {
         this.id = id;
     }
@@ -75,37 +91,48 @@ public abstract class Produit implements Serializable {
     }
 
     public void setPrixHt(double prixHt) {
+        if (prixHt < 0) {
+            throw new IllegalArgumentException("Le prix HT ne peut pas être négatif.");
+        }
         this.prixHt = prixHt;
     }
 
     public void setQuantite(int quantite) {
+        if (quantite < 0) {
+            throw new IllegalArgumentException("La quantité ne peut pas être négative.");
+        }
         this.quantite = quantite;
     }
 
-    // Méthode abstraite pour calculer le Prix TTC
-    // Les sous-classes devront implémenter cette méthode, potentiellement en
-    // utilisant TAUX_TVA_STANDARD
-    public abstract double calculerPrixTTC();
+    public void setTypeProduit(String typeProduit) {
+        this.typeProduit = typeProduit;
+    }
+
+    public void setEstRemboursable(boolean estRemboursable) {
+        this.estRemboursable = estRemboursable;
+    }
+
+    // Calcul du prix TTC (peut être surchargé si des TVA différentes sont appliquées)
+    public double calculerPrixTTC() {
+        double tauxTVA = 0.18; 
+        return prixHt * (1 + tauxTVA);
+    }
 
     @Override
     public String toString() {
-        return "ID: " + id + ", Nom: " + nom + ", Ref: " + reference + ", Desc: " + description + ", Prix HT: "
-                + String.format("%.2f", prixHt) + ", Qte: " + quantite;
+        return nom + " (Ref: " + reference + ", Stock: " + quantite + ", Prix TTC: " + String.format("%.2f", calculerPrixTTC()) + " FCFA)";
     }
 
-    // Méthode pour vérifier si deux produits sont égaux (basé sur la référence)
     @Override
-    public boolean equals(Object obj) {
-        if (this == obj)
-            return true;
-        if (obj == null || getClass() != obj.getClass())
-            return false;
-        Produit other = (Produit) obj;
-        return this.reference.equals(other.reference);
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Produit produit = (Produit) o;
+        return id == produit.id && Objects.equals(reference, produit.reference);
     }
 
     @Override
     public int hashCode() {
-        return reference.hashCode();
+        return Objects.hash(id, reference);
     }
 }
