@@ -129,45 +129,7 @@ public class ProduitDAOImpl implements ProduitDAO {
         }
         return produits;
     }
-
-    @Override
-    public boolean mettreAJourProduit(Produit produit) throws SQLException {
-        String sql = "UPDATE Produits SET nom = ?, description = ?, prix_ht = ?, quantite = ?, type_produit = ?, est_generique = ?, est_sur_ordonnance = ?, categorie_parapharmacie = ? WHERE reference = ?";
-        Connection conn = null;
-        PreparedStatement pstmt = null;
-        try {
-            conn = DatabaseManager.getConnection();
-            pstmt = conn.prepareStatement(sql);
-
-            pstmt.setString(1, produit.getNom());
-            pstmt.setString(2, produit.getDescription());
-            pstmt.setDouble(3, produit.getPrixHt());
-            pstmt.setInt(4, produit.getQuantite());
-
-            if (produit instanceof Medicament) {
-                Medicament medicament = (Medicament) produit;
-                pstmt.setString(5, "Medicament");
-                pstmt.setBoolean(6, medicament.isGenerique());
-                pstmt.setBoolean(7, medicament.isSurOrdonnance());
-                pstmt.setNull(8, Types.VARCHAR);
-            } else if (produit instanceof ProduitParaPharmacie) {
-                ProduitParaPharmacie parapharmacie = (ProduitParaPharmacie) produit;
-                pstmt.setString(5, "Parapharmacie");
-                pstmt.setNull(6, Types.BOOLEAN);
-                pstmt.setNull(7, Types.BOOLEAN);
-                pstmt.setString(8, parapharmacie.getCategorie());
-            } else {
-                throw new IllegalArgumentException(
-                        "Type de produit inconnu ou non supporté pour la mise à jour: " + produit.getClass().getName());
-            }
-            pstmt.setString(9, produit.getReference());
-
-            int rowsAffected = pstmt.executeUpdate();
-            return rowsAffected > 0;
-        } finally {
-            DatabaseManager.close(conn, pstmt);
-        }
-    }
+   
 
     @Override
     public boolean supprimerProduit(String reference) throws SQLException {
@@ -248,8 +210,47 @@ public class ProduitDAOImpl implements ProduitDAO {
     }
 
     @Override
-    public boolean mettreAJourQuantite(Connection conn, String reference, int nouvelleQuantite) throws SQLException {
-        
-        throw new UnsupportedOperationException("Unimplemented method 'mettreAJourQuantite'");
+    public boolean mettreAJourProduit(Produit produit) throws SQLException {
+        String sql = "UPDATE produits SET nom = ?, description = ?, prix_ht = ?, quantite = ?, type_produit = ?, est_generique = ?, est_sur_ordonnance = ?, categorie_parapharmacie = ? WHERE reference = ?";
+        Connection conn = null;
+        PreparedStatement pstmt = null;
+        try {
+            conn = DatabaseManager.getConnection();
+            pstmt = conn.prepareStatement(sql);
+            pstmt.setString(1, produit.getNom());
+            pstmt.setString(2, produit.getDescription());
+            pstmt.setDouble(3, produit.getPrixHt());
+            pstmt.setInt(4, produit.getQuantite());
+            pstmt.setString(5, produit.getTypeProduit());
+
+            if (produit instanceof Medicament medicament) {
+                pstmt.setBoolean(6, medicament.isGenerique());
+                pstmt.setBoolean(7, medicament.isSurOrdonnance());
+                pstmt.setNull(8, java.sql.Types.VARCHAR);
+            } else if (produit instanceof ProduitParaPharmacie parapharmacie) {
+                pstmt.setNull(6, java.sql.Types.BOOLEAN);
+                pstmt.setNull(7, java.sql.Types.BOOLEAN);
+                pstmt.setString(8, parapharmacie.getCategorie());
+            } else {
+                pstmt.setNull(6, java.sql.Types.BOOLEAN);
+                pstmt.setNull(7, java.sql.Types.BOOLEAN);
+                pstmt.setNull(8, java.sql.Types.VARCHAR);
+            }
+            pstmt.setString(9, produit.getReference());
+            return pstmt.executeUpdate() > 0;
+        } finally {
+            DatabaseManager.close(conn, pstmt);
+        }
     }
+    @Override
+    public boolean mettreAJourQuantite(Connection conn, String reference, int nouvelleQuantite) throws SQLException {
+        String sql = "UPDATE produits SET quantite = ? WHERE reference = ?";
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, nouvelleQuantite);
+            pstmt.setString(2, reference);
+            return pstmt.executeUpdate() > 0;
+        }
+        // Pas de close() ou setAutoCommit ici, la gestion de la connexion est externe
+    }
+
 }

@@ -6,14 +6,22 @@ import dao.ProduitDAO;
 import dao.UtilisateurDAO;
 import dao.AssuranceSocialDAO;
 import dao.CompteComptableDAO; 
-import dao.TransactionComptableDAO; 
+import dao.TransactionComptableDAO;
+import dao.FournisseurDAO;
+import dao.ApprovisionnementDAO;
+import dao.LigneApprovisionnementDAO;
+
 import dao.impl.FactureDAOImpl;
 import dao.impl.LigneFactureDAOImpl;
 import dao.impl.ProduitDAOImpl;
 import dao.impl.UtilisateurDAOImpl;
 import dao.impl.AssuranceSocialDAOImpl;
 import dao.impl.CompteComptableDAOImpl; 
-import dao.impl.TransactionComptableDAOImpl; 
+import dao.impl.TransactionComptableDAOImpl;
+import dao.impl.FournisseurDAOImpl;
+import dao.impl.ApprovisionnementDAOImpl;
+import dao.impl.LigneApprovisionnementDAOImpl;
+
 import dao.DatabaseManager; 
 import java.io.*;
 import java.sql.Connection; 
@@ -22,24 +30,31 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
+
+
 public class Pharmacie implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private String nom;
     private String adresse;
 
-    private transient ProduitDAO produitDAO;
-    private transient UtilisateurDAO utilisateurDAO;
-    private transient FactureDAO factureDAO;
-    private transient LigneFactureDAO ligneFactureDAO;
-    private transient AssuranceSocialDAO AssuranceSocialDAO;
-    private transient CompteComptableDAO compteComptableDAO; 
-    private transient TransactionComptableDAO transactionComptableDAO; 
+    protected transient ProduitDAO produitDAO;
+    protected transient UtilisateurDAO utilisateurDAO;
+    protected transient FactureDAO factureDAO;
+    protected transient LigneFactureDAO ligneFactureDAO;
+    protected transient AssuranceSocialDAO AssuranceSocialDAO;
+    protected transient CompteComptableDAO compteComptableDAO; 
+    protected transient TransactionComptableDAO transactionComptableDAO;
+    protected transient FournisseurDAO fournisseurDAO; // NOUVEAU
+    protected transient ApprovisionnementDAO approvisionnementDAO; // NOUVEAU
+    protected transient LigneApprovisionnementDAO ligneApprovisionnementDAO; // NOUVEAU
+
 
     // Comptes comptables spécifiques aux approvisionnements (pour optimisation)
     private transient CompteComptable compteAchatsMarchandises;
     private transient CompteComptable compteTVADeductible;
-    private transient CompteComptable compteCaissePourAchats; // ou Banque, ou Fournisseurs
+    private transient CompteComptable compteCaissePourAchats; 
+    private transient CompteComptable compteFournisseurs;
 
     public Pharmacie(String nom, String adresse) {
         this.nom = nom;
@@ -62,7 +77,11 @@ public class Pharmacie implements Serializable {
         this.ligneFactureDAO = new LigneFactureDAOImpl(produitDAO);
         this.AssuranceSocialDAO = new AssuranceSocialDAOImpl();
         this.compteComptableDAO = new CompteComptableDAOImpl(); 
-        this.transactionComptableDAO = new TransactionComptableDAOImpl(compteComptableDAO); 
+        this.transactionComptableDAO = new TransactionComptableDAOImpl(compteComptableDAO);
+        this.fournisseurDAO = new FournisseurDAOImpl();
+        this.ligneApprovisionnementDAO = new LigneApprovisionnementDAOImpl(produitDAO); 
+        this.approvisionnementDAO = new ApprovisionnementDAOImpl(fournisseurDAO, ligneApprovisionnementDAO, produitDAO, compteComptableDAO, transactionComptableDAO); 
+        
         
         this.factureDAO = new FactureDAOImpl(utilisateurDAO, ligneFactureDAO, produitDAO, AssuranceSocialDAO,
                                              compteComptableDAO, transactionComptableDAO); 
@@ -74,6 +93,7 @@ public class Pharmacie implements Serializable {
         compteAchatsMarchandises = compteComptableDAO.getCompteByNumero("607");
         compteTVADeductible = compteComptableDAO.getCompteByNumero("4456");
         compteCaissePourAchats = compteComptableDAO.getCompteByNumero("530"); // Assumons le paiement en caisse
+        compteFournisseurs = compteComptableDAO.getCompteByNumero("401");
 
         if (compteAchatsMarchandises == null || compteTVADeductible == null || compteCaissePourAchats == null) {
             throw new SQLException("Un ou plusieurs comptes comptables nécessaires (607, 4456, 530) sont introuvables en base de données.");
@@ -154,206 +174,7 @@ public class Pharmacie implements Serializable {
         return produitDAO.mettreAJourQuantite(reference, nouvelleQuantite);
     }
 
-    // Cette méthode a été mise à jour dans la logique
-    public boolean approvisionnerProduit(String reference, int quantiteAAjouter) throws SQLException {
-        if (quantiteAAjouter <= 0) {
-            throw new IllegalArgumentException("La quantité à ajouter doit être positive.");
-        }
-
-        Connection conn = null; // Déclaration de la connexion pour la transaction
-        try {
-            conn = DatabaseManager.getConnection();
-            conn.setAutoCommit(false); // Démarrer la transaction
-
-            Produit produit = getProduitByReference(reference);
-            if (produit == null) {
-                throw new IllegalArgumentException("Produit avec la référence '" + reference + "' introuvable.");
-            }
-
-            int nouvelleQuantiteTotale = produit.getQuantite() + quantiteAAjouter;
-            
-            // Mettre à jour la quantité du produit dans la même transaction
-            boolean stockUpdated = produitDAO.mettreAJourQuantite(conn, reference, nouvelleQuantiteTotale);
-            if (!stockUpdated) {
-                conn.rollback();
-                return false;
-            }
-
-            // --- NOUVEAU: Générer les écritures comptables pour l'approvisionnement ---
-            LocalDateTime transactionDate = LocalDateTime.now();
-            String referencePiece = "APPR-" + produit.getReference() + "-" + transactionDate.format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss")); // Ex: APPR-REFPROD-20231027143000
-            String description = "Approvisionnement de " + quantiteAAjouter + " " + produit.getNom();
-            
-            // Calcul du montant HT et TTC de cet approvisionnement
-            double montantHTAppro = produit.getPrixHt() * quantiteAAjouter;
-            double montantTTCAppro = produit.calculerPrixTTC() * quantiteAAjouter;
-            double montantTVAAppro = montantTTCAppro - montantHTAppro;
-
-            // 1. Écriture pour la charge d'achat (HT)
-            TransactionComptable transAchatHT = new TransactionComptable(
-                transactionDate,
-                referencePiece,
-                description + " (HT)",
-                montantHTAppro,
-                compteAchatsMarchandises, 
-                compteCaissePourAchats,   // Crédit (sera ajusté par la TVA)
-                "ACHAT",
-                produit.getId() // ID du produit comme source
-            );
-            // NOTE: Pour que le débit = crédit soit respecté dans une entrée séparée,
-            // il faudrait un compte "intérim". L'idéal est de faire 3 transactions ou 1 transaction composée.
-            // Avec notre modèle actuel:
-            // D: Achats (HT)
-            // D: TVA Déductible
-            // C: Caisse (TTC)
-            // Simplifions en 2 transactions pour respecter Débit/Crédit par transaction:
-            // Transaction 1: Débit Achats (HT) / Crédit Caisse (HT temporaire)
-            // Transaction 2: Débit TVA Déductible / Crédit Caisse (TVA temporaire)
-            // Transaction 3: Ajustement Caisse - Fournisseurs...
-            // Pour notre modèle, allons-y directement:
-            // 1. Débit: Achats de marchandises (Montant HT)
-            //    Crédit: Caisse (Montant HT) -- C'est une simplification pour enregistrer la dépense comme une charge
-            //    La différence sera que la caisse sera créditée 2 fois pour le même achat TTC.
-            //    L'approche la plus fidèle au modèle Double Entry Bookkeeping est la suivante:
-
-            // Écriture comptable (débit = crédit) pour l'approvisionnement
-            // Débit Achats (charge) et Débit TVA (actif) / Crédit Caisse (actif)
-            
-            // On peut faire deux transactions distinctes pour un même événement si les comptes sont différents:
-            // Transaction 1: Coût des marchandises (HT)
-            TransactionComptable transAchats = new TransactionComptable(
-                transactionDate,
-                referencePiece,
-                description + " (Coût HT)",
-                montantHTAppro,
-                compteAchatsMarchandises,
-                compteCaissePourAchats, // Temporaire, le crédit réel sera sur le TTC
-                "ACHAT",
-                produit.getId()
-            );
-            // Le problème de ce modèle TransactionComptable simple est qu'il force D=C par transaction.
-            // Pour la simplicité, on va faire des transactions qui reflètent la nature de la dépense/recepte.
-            // La somme des débits DOIT égaler la somme des crédits sur l'ensemble des opérations.
-
-            // Solution plus robuste pour le double entry avec un modèle simple de TransactionComptable (une paire D/C par entrée)
-            // On enregistre les deux côtés de l'opération:
-            // 1. Enregistrement de la charge/actif (Achats/TVA)
-            // 2. Enregistrement du paiement (diminution Caisse/augmentation Fournisseur)
-
-            // Enregistrement de l'augmentation des achats (charge)
-            TransactionComptable transAchatsCharge = new TransactionComptable(
-                transactionDate,
-                referencePiece,
-                "Augmentation Achats Stock " + produit.getNom() + " (HT)",
-                montantHTAppro,
-                compteAchatsMarchandises,
-                compteCaissePourAchats, // on assume un paiement pour cette part
-                "ACHAT",
-                produit.getId()
-            );
-            if (!transactionComptableDAO.addTransaction(conn, transAchatsCharge)) {
-                conn.rollback();
-                return false;
-            }
-
-            // Enregistrement de la TVA déductible (actif)
-            if (montantTVAAppro > 0) {
-                TransactionComptable transTVADeductible = new TransactionComptable(
-                    transactionDate,
-                    referencePiece,
-                    "TVA déductible sur Achat " + produit.getNom(),
-                    montantTVAAppro,
-                    compteTVADeductible,
-                    compteCaissePourAchats, // on assume un paiement pour cette part
-                    "ACHAT_TVA",
-                    produit.getId()
-                );
-                if (!transactionComptableDAO.addTransaction(conn, transTVADeductible)) {
-                    conn.rollback();
-                    return false;
-                }
-            }
-            
-            // Enregistrement du paiement réel (TTC)
-            // Pour équilibrer les débits précédents, le compte caisse a été crédité du montant HT et du montant TVA.
-            // Donc le débit total sur Achats et TVA déductible est montantHT + montantTVA = montantTTC.
-            // Ici, on crédite Caisse pour le montant TTC global.
-            // Cela implique que les transactions précédentes de "crédit caisse" sont juste des place-holders.
-
-            // Repensons la logique comptable pour notre modèle simple (un seul débit et un seul crédit par TransactionComptable):
-            // L'achat impacte le stock (ou une charge) et la trésorerie.
-            // Le plus simple est d'enregistrer la *dépense* totale TTC contre la *caisse*.
-            // Et ensuite enregistrer la *charge d'achat HT* contre un compte intermédiaire, et *TVA déductible* contre ce même compte intermédiaire.
-            // Cela devient complexe avec notre modèle de transaction simple.
-
-            // Simplification Maximale:
-            // Pour l'approvisionnement, le flux de trésorerie est direct: de la Caisse vers l'extérieur.
-            // L'impact sur les charges est séparé.
-            // Débit : Achats (pour HT) et TVA Déductible (pour TVA)
-            // Crédit : Caisse (pour TTC)
-
-            // Avec un seul CompteDebit et un seul CompteCredit par TransactionComptable, on ne peut pas faire D1, D2 / C1 directement.
-            // Option la plus simple et la plus courante pour un tel modèle:
-            // 1. Débit Achats de marchandises (pour HT) / Crédit Caisse (pour HT)
-            // 2. Débit TVA déductible (pour TVA) / Crédit Caisse (pour TVA)
-            // Ainsi, le total crédité à Caisse est bien TTC.
-            // Cette approche sépare les débits et permet de les assigner au crédit de Caisse.
-
-            // Écriture 1: Coût des marchandises (HT)
-            TransactionComptable transAchatsForfaits = new TransactionComptable(
-                transactionDate,
-                referencePiece,
-                "Achat marchandises " + produit.getNom() + " (HT)",
-                montantHTAppro,
-                compteAchatsMarchandises,
-                compteCaissePourAchats, 
-                "ACHAT",
-                produit.getId()
-            );
-            if (!transactionComptableDAO.addTransaction(conn, transAchatsForfaits)) {
-                conn.rollback();
-                return false;
-            }
-
-            // Écriture 2: TVA déductible
-            if (montantTVAAppro > 0) {
-                TransactionComptable transTVADeductibleComp = new TransactionComptable(
-                    transactionDate,
-                    referencePiece,
-                    "TVA déductible sur achat " + produit.getNom(),
-                    montantTVAAppro,
-                    compteTVADeductible,
-                    compteCaissePourAchats, 
-                    "ACHAT_TVA",
-                    produit.getId()
-                );
-                if (!transactionComptableDAO.addTransaction(conn, transTVADeductibleComp)) {
-                    conn.rollback();
-                    return false;
-                }
-            }
-            // --- FIN NOUVEAU: Générer les écritures comptables ---
-
-            conn.commit(); // Valider la transaction
-            return true;
-
-        } catch (SQLException e) {
-            if (conn != null) {
-                try {
-                    conn.rollback(); // Annuler la transaction en cas d'erreur
-                } catch (SQLException ex) {
-                    System.err.println("Erreur lors du rollback de l'approvisionnement et des transactions comptables: " + ex.getMessage());
-                }
-            }
-            throw e; // Renvoyer l'exception pour être gérée plus haut
-        } finally {
-            if (conn != null) {
-                conn.setAutoCommit(true); // Restaurer l'auto-commit par défaut
-                conn.close(); // Fermer la connexion
-            }
-        }
-    }
-
+   
     public double calculerValeurTotaleStock() throws SQLException {
         double valeurTotale = 0.0;
         List<Produit> allProducts = produitDAO.getAllProduits();
@@ -509,6 +330,52 @@ public class Pharmacie implements Serializable {
 
     public List<TransactionComptable> getTransactionsComptablesBySourceType(String sourceType) throws SQLException {
         return transactionComptableDAO.getTransactionsBySourceType(sourceType);
+    }
+    public List<Fournisseur> getAllFournisseurs() throws SQLException {
+        return fournisseurDAO.getAllFournisseurs();
+    }
+
+    public Fournisseur getFournisseurById(int id) throws SQLException {
+        return fournisseurDAO.getFournisseurById(id);
+    }
+
+    public Fournisseur getFournisseurByNom(String nom) throws SQLException {
+        return fournisseurDAO.getFournisseurByNom(nom);
+    }
+
+    public boolean ajouterFournisseur(Fournisseur fournisseur) throws SQLException {
+        return fournisseurDAO.addFournisseur(fournisseur);
+    }
+
+    public boolean mettreAJourFournisseur(Fournisseur fournisseur) throws SQLException {
+        return fournisseurDAO.updateFournisseur(fournisseur);
+    }
+    public Approvisionnement getApprovisionnementByReference(String referenceBonCommande) throws SQLException {
+        return approvisionnementDAO.getApprovisionnementByReference(referenceBonCommande);
+    }
+    public boolean supprimerFournisseur(int id) throws SQLException {
+        return fournisseurDAO.deleteFournisseur(id);
+    }
+
+    // NOUVEAU: Méthodes pour la gestion des Approvisionnements (délèguent à ApprovisionnementDAO) ---
+    public boolean ajouterApprovisionnement(Approvisionnement approvisionnement) throws SQLException {
+        return approvisionnementDAO.addApprovisionnement(approvisionnement);
+    }
+
+    public List<Approvisionnement> getAllApprovisionnements() throws SQLException {
+        return approvisionnementDAO.getAllApprovisionnements();
+    }
+
+    public Approvisionnement getApprovisionnementById(int id) throws SQLException {
+        return approvisionnementDAO.getApprovisionnementById(id);
+    }
+
+    public List<Approvisionnement> getApprovisionnementsByFournisseur(int idFournisseur) throws SQLException {
+        return approvisionnementDAO.getApprovisionnementsByFournisseur(idFournisseur);
+    }
+
+    public List<Approvisionnement> getApprovisionnementsByDateRange(LocalDateTime startDate, LocalDateTime endDate) throws SQLException {
+        return approvisionnementDAO.getApprovisionnementsByDateRange(startDate, endDate);
     }
 
     // --- Méthodes de sauvegarde et chargement (pour les propriétés de la Pharmacie) ---

@@ -115,7 +115,7 @@ public class MainFrame extends JFrame implements LoginListener, PharmacieDataLis
         } else if (Objects.equals(cardName, "HistoriqueVentes")) {
             historiqueVentesPanel.refreshFacturesTable();
         } else if (Objects.equals(cardName, "Approvisionnement")) {
-            approvisionnementPanel.refreshProductTable();
+            approvisionnementPanel.refreshAllData();
         } else if (Objects.equals(cardName, "GestionAssurances")) {
             gestionAssurancesPanel.loadAssurances();
         } else if (Objects.equals(cardName, "Comptabilite")) {
@@ -229,7 +229,7 @@ public class MainFrame extends JFrame implements LoginListener, PharmacieDataLis
         gestionUtilisateursPanel.refreshUsersTable();
         ventePanel.refreshProductSelectionTable();
         historiqueVentesPanel.refreshFacturesTable();
-        approvisionnementPanel.refreshProductTable();
+        approvisionnementPanel.refreshAllData();
         gestionAssurancesPanel.loadAssurances();
         comptabilitePanel.refreshAccountingData();
     }
