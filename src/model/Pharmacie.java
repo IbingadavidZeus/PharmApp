@@ -55,6 +55,7 @@ public class Pharmacie implements Serializable {
     private transient CompteComptable compteTVADeductible;
     private transient CompteComptable compteCaissePourAchats; 
     private transient CompteComptable compteFournisseurs;
+    private transient CompteComptable compteBanque; // NOUVEAU: Pour les transactions bancaires
 
     public Pharmacie(String nom, String adresse) {
         this.nom = nom;
@@ -94,6 +95,7 @@ public class Pharmacie implements Serializable {
         compteTVADeductible = compteComptableDAO.getCompteByNumero("4456");
         compteCaissePourAchats = compteComptableDAO.getCompteByNumero("530"); // Assumons le paiement en caisse
         compteFournisseurs = compteComptableDAO.getCompteByNumero("401");
+        compteBanque = compteComptableDAO.getCompteByNumero("512");
 
         if (compteAchatsMarchandises == null || compteTVADeductible == null || compteCaissePourAchats == null) {
             throw new SQLException("Un ou plusieurs comptes comptables nécessaires (607, 4456, 530) sont introuvables en base de données.");
