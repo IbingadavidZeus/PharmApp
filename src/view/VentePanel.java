@@ -6,23 +6,26 @@ import model.Panier;
 import model.Pharmacie;
 import model.Produit;
 import model.Utilisateur;
-import model.AssuranceSocial;
+import model.AssuranceSocial; // Utilisé votre nom de classe AssuranceSocial
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+import javax.swing.border.TitledBorder; // Ajouté pour les titres des bordures
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.StringSelection;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.KeyAdapter; // Ajouté pour écouter les touches clavier
+import java.awt.event.KeyEvent; // Ajouté pour écouter les touches clavier
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.Optional;
-import java.util.Objects;
+import java.util.Objects; // Ajouté pour Objects.equals
 import java.util.UUID;
+import java.awt.print.PrinterException; // Ajouté pour la gestion des exceptions d'impression
 
 public class VentePanel extends JPanel {
     private Pharmacie pharmacie;
@@ -43,7 +46,7 @@ public class VentePanel extends JPanel {
     private JButton clearCartButton;
 
     private JLabel totalTTCAvantAssuranceLabel;
-    private JComboBox<AssuranceSocial> assuranceComboBox;
+    private JComboBox<AssuranceSocial> assuranceComboBox; // Utilise votre nom de classe
     private JLabel montantPrisEnChargeLabel;
     private JLabel montantClientAPayerLabel;
 
@@ -67,10 +70,27 @@ public class VentePanel extends JPanel {
         setLayout(new BorderLayout(15, 15));
         setBorder(new EmptyBorder(15, 15, 15, 15));
 
+        // --- Panel de Recherche et Sélection de Produits (NORTH) ---
         JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 5));
         searchPanel.setBorder(BorderFactory.createTitledBorder("Recherche de Produits"));
         searchPanel.add(new JLabel("Rechercher (Nom/Référence):"));
         searchField = new JTextField(25);
+        // Ajout de l'écouteur pour la touche ENTER
+        searchField.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyPressed(KeyEvent e) {
+                if (e.getKeyCode() == KeyEvent.VK_ENTER) {
+                    try {
+                        searchProducts();
+                    } catch (SQLException ex) {
+                        JOptionPane.showMessageDialog(VentePanel.this,
+                                "Erreur lors du chargement des produits depuis la base de données: " + ex.getMessage(),
+                                "Erreur de Base de Données", JOptionPane.ERROR_MESSAGE);
+                        ex.printStackTrace();
+                    }
+                }
+            }
+        });
         searchPanel.add(searchField);
         searchButton = new JButton("Rechercher");
         searchButton.addActionListener(e -> {
@@ -86,6 +106,7 @@ public class VentePanel extends JPanel {
         searchPanel.add(searchButton);
         add(searchPanel, BorderLayout.NORTH);
 
+        // --- SplitPane pour la sélection des produits et le panier (CENTER) ---
         JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
         splitPane.setResizeWeight(0.5);
 
@@ -160,6 +181,7 @@ public class VentePanel extends JPanel {
         splitPane.setRightComponent(cartPanel);
         add(splitPane, BorderLayout.CENTER);
 
+        // --- Panel des Totaux, Paiement et Finalisation (SOUTH) ---
         JPanel checkoutPanel = new JPanel(new GridBagLayout());
         checkoutPanel.setBorder(new EmptyBorder(10, 0, 0, 0));
 
@@ -234,7 +256,13 @@ public class VentePanel extends JPanel {
         gbc.weightx = 1.0;
         gbc.anchor = GridBagConstraints.WEST;
         montantDonneField = new JTextField(10);
-        montantDonneField.addActionListener(e -> calculateChange());
+        // Ajout de l'écouteur pour la touche ENTER et mise à jour dynamique
+        montantDonneField.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyReleased(KeyEvent e) {
+                calculateChange(); // Recalcule à chaque frappe
+            }
+        });
         checkoutPanel.add(montantDonneField, gbc);
         row++;
 
@@ -275,18 +303,22 @@ public class VentePanel extends JPanel {
 
         add(checkoutPanel, BorderLayout.SOUTH);
 
+        // Initialiser l'affichage
         refreshProductSelectionTable();
         loadAssurancesIntoComboBox();
-        updateCartTableAndTotal();
+        updateCartTableAndTotal(); // Cela va aussi déclencher calculateTotalsWithAssurance et calculateChange
     }
 
     public void setCurrentUser(Utilisateur user) {
         this.currentUser = user;
+        // Si l'utilisateur change, on pourrait vouloir démarrer une nouvelle vente
+        // ou simplement s'assurer que l'utilisateur de la facture est à jour si un panier est en cours.
+        // Puisque votre classe Panier n'a pas d'utilisateur, cela se gérera à la finalisation de la vente.
     }
 
     public void refreshProductSelectionTable() {
         productSelectionTableModel.setRowCount(0);
-        searchField.setText("");
+        searchField.setText(""); // Vider le champ de recherche
         try {
             List<Produit> allProducts = pharmacie.getProduits();
             for (Produit p : allProducts) {
@@ -373,8 +405,8 @@ public class VentePanel extends JPanel {
         panier.viderPanier();
         updateCartTableAndTotal();
         setMessage("Panier vidé.", Color.BLUE);
-        montantDonneField.setText("");
-        monnaieARendreLabel.setText("0.00 FCFA");
+        montantDonneField.setText(""); // Réinitialiser le champ montant donné
+        monnaieARendreLabel.setText("0.00 FCFA"); // Réinitialiser la monnaie à rendre
     }
 
     private void updateCartTableAndTotal() {
@@ -390,15 +422,15 @@ public class VentePanel extends JPanel {
                     p.isEstRemboursable()
             });
         }
-        calculateTotalsWithAssurance();
+        calculateTotalsWithAssurance(); // Ceci met à jour les labels de totaux
         calculateChange();
     }
 
     private void loadAssurancesIntoComboBox() {
         assuranceComboBox.removeAllItems();
-        assuranceComboBox.addItem(null);
+        assuranceComboBox.addItem(null); // Option "Aucune assurance"
         try {
-            List<AssuranceSocial> assurances = pharmacie.getAllAssurancesSociales();
+            List<AssuranceSocial> assurances = pharmacie.getAllAssurancesSociales(); // Utilise votre type AssuranceSocial
             for (AssuranceSocial ass : assurances) {
                 assuranceComboBox.addItem(ass);
             }
@@ -412,7 +444,7 @@ public class VentePanel extends JPanel {
         double totalTTC = panier.calculerTotalPanier();
         totalTTCAvantAssuranceLabel.setText(String.format("%.2f FCFA", totalTTC));
 
-        AssuranceSocial selectedAssurance = (AssuranceSocial) assuranceComboBox.getSelectedItem();
+        AssuranceSocial selectedAssurance = (AssuranceSocial) assuranceComboBox.getSelectedItem(); // Utilise votre type
         double montantRemboursable = 0.0;
         double montantPrisEnCharge = 0.0;
         double montantRestantAPayer = totalTTC;
@@ -427,7 +459,7 @@ public class VentePanel extends JPanel {
             montantPrisEnCharge = montantRemboursable * selectedAssurance.getTauxDePriseEnCharge();
             montantRestantAPayer = totalTTC - montantPrisEnCharge;
             if (montantRestantAPayer < 0) {
-                montantRestantAPayer = 0;
+                montantRestantAPayer = 0; // Le montant à payer par le client ne peut pas être négatif
             }
         }
 
@@ -436,24 +468,25 @@ public class VentePanel extends JPanel {
         montantPrisEnChargeLabel.setText(String.format("%.2f FCFA", montantPrisEnCharge));
         montantClientAPayerLabel.setText(String.format("%.2f FCFA", montantRestantAPayer));
 
-        calculateChange();
+        calculateChange(); // Recalcule la monnaie à rendre chaque fois que les totaux changent
     }
 
     private void calculateChange() {
         double totalClientAPayer = this.currentClientAmountToPay;
 
         try {
-            double montantDonne = Double.parseDouble(montantDonneField.getText().trim());
+            // Remplace la virgule par un point pour la conversion en double
+            double montantDonne = Double.parseDouble(montantDonneField.getText().trim().replace(',', '.'));
             if (montantDonne < totalClientAPayer) {
                 monnaieARendreLabel.setText("Montant insuffisant !");
                 monnaieARendreLabel.setForeground(Color.RED);
             } else {
                 double monnaie = montantDonne - totalClientAPayer;
                 monnaieARendreLabel.setText(String.format("%.2f FCFA", monnaie));
-                monnaieARendreLabel.setForeground(Color.BLUE);
+                monnaieARendreLabel.setForeground(new Color(0, 128, 0)); // Vert foncé
             }
         } catch (NumberFormatException ex) {
-            monnaieARendreLabel.setText("0.00 FCFA");
+            monnaieARendreLabel.setText("0.00 FCFA"); // Si le champ est vide ou invalide
             monnaieARendreLabel.setForeground(Color.DARK_GRAY);
         }
     }
@@ -467,13 +500,15 @@ public class VentePanel extends JPanel {
         double montantFinalClientAPayer = this.currentClientAmountToPay;
 
         try {
-            double montantDonne = Double.parseDouble(montantDonneField.getText().trim());
+            // Remplace la virgule par un point pour la conversion en double
+            double montantDonne = Double.parseDouble(montantDonneField.getText().trim().replace(',', '.'));
 
             if (montantDonne < montantFinalClientAPayer) {
                 setMessage("Le montant donné (" + String.format("%.2f", montantDonne) + " FCFA) est insuffisant. Le client doit payer " + String.format("%.2f", montantFinalClientAPayer) + " FCFA.", Color.RED);
                 return;
             }
 
+            // Vérification finale du stock avant de procéder
             for (LigneFacture ligne : panier.getLignesPanier()) {
                 Produit produitEnStock = pharmacie.getProduitByReference(ligne.getProduit().getReference());
                 if (produitEnStock == null || produitEnStock.getQuantite() < ligne.getQuantite()) {
@@ -487,12 +522,13 @@ public class VentePanel extends JPanel {
                 return;
             }
 
+            // Création de la facture
             String numeroFacture = "FACT-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
             LocalDateTime dateFacture = LocalDateTime.now();
-            double totalHtFacture = panier.calculerTotalPanier();
+            double totalHtFacture = panier.calculerTotalPanier(); // Utiliser la méthode HT de Panier
             double totalTTCFacture = panier.calculerTotalPanier();
 
-            AssuranceSocial selectedAssurance = (AssuranceSocial) assuranceComboBox.getSelectedItem();
+            AssuranceSocial selectedAssurance = (AssuranceSocial) assuranceComboBox.getSelectedItem(); // Utilise votre type
             double montantPrisEnChargeParAssurance = 0.0;
             double montantRestantADueClient = totalTTCFacture;
 
@@ -500,7 +536,7 @@ public class VentePanel extends JPanel {
                 double montantRemboursableDansPanier = 0.0;
                 for (LigneFacture ligne : panier.getLignesPanier()) {
                     if (ligne.getProduit().isEstRemboursable()) {
-                        montantRemboursableDansPanier += ligne.getSousTotal();
+                        montantRemboursableDansPanier += ligne.getSousTotal(); // Sous-total TTC des produits remboursables
                     }
                 }
                 montantPrisEnChargeParAssurance = montantRemboursableDansPanier * selectedAssurance.getTauxDePriseEnCharge();
@@ -517,7 +553,7 @@ public class VentePanel extends JPanel {
                     panier.getLignesPanier(),
                     totalHtFacture,
                     totalTTCFacture,
-                    selectedAssurance,
+                    selectedAssurance, // Passer l'objet AssuranceSocial tel quel
                     montantPrisEnChargeParAssurance,
                     montantRestantADueClient
             );
@@ -528,19 +564,50 @@ public class VentePanel extends JPanel {
                 setMessage("Vente finalisée avec succès ! Facture #" + nouvelleFacture.getNumeroFacture() + " enregistrée.", Color.GREEN);
 
                 String factureText = generateFactureText(nouvelleFacture, montantDonne);
-                int dialogResult = JOptionPane.showConfirmDialog(this,
-                        factureText + "\n\nVoulez-vous copier la facture dans le presse-papiers ?",
-                        "Facture Générée", JOptionPane.YES_NO_OPTION, JOptionPane.INFORMATION_MESSAGE);
-                if (dialogResult == JOptionPane.YES_OPTION) {
-                    copyToClipboard(factureText);
-                    JOptionPane.showMessageDialog(this, "Facture copiée dans le presse-papiers !", "Copie Réussie", JOptionPane.INFORMATION_MESSAGE);
-                }
+                // Afficher la facture dans un JTextArea pour permettre la copie
+                JTextArea factureTextArea = new JTextArea(factureText);
+                factureTextArea.setEditable(false);
+                factureTextArea.setFont(new Font("Monospaced", Font.PLAIN, 12)); // Police pour alignement
+                factureTextArea.setTabSize(4); // Taille des tabulations
 
-                clearCart();
-                refreshProductSelectionTable();
+                JScrollPane scrollPane = new JScrollPane(factureTextArea);
+                scrollPane.setPreferredSize(new Dimension(500, 600)); // Taille de la fenêtre
+
+                JButton copyFactureButton = new JButton("Copier la facture");
+                copyFactureButton.addActionListener(e -> copyToClipboard(factureText));
+
+                // NOUVEAU: Bouton Imprimer
+                JButton printFactureButton = new JButton("Imprimer la facture");
+                printFactureButton.addActionListener(e -> {
+                    try {
+                        // Utilise la méthode print() de JTextArea
+                        boolean complete = factureTextArea.print();
+                        if (complete) {
+                            JOptionPane.showMessageDialog(this, "Impression de la facture terminée.", "Impression", JOptionPane.INFORMATION_MESSAGE);
+                        } else {
+                            JOptionPane.showMessageDialog(this, "Impression de la facture annulée ou incomplète.", "Impression", JOptionPane.WARNING_MESSAGE);
+                        }
+                    } catch (PrinterException pe) {
+                        JOptionPane.showMessageDialog(this, "Erreur lors de l'impression: " + pe.getMessage(), "Erreur d'impression", JOptionPane.ERROR_MESSAGE);
+                        pe.printStackTrace();
+                    }
+                });
+
+                JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+                buttonPanel.add(copyFactureButton);
+                buttonPanel.add(printFactureButton); // Ajout du bouton Imprimer
+
+                JPanel dialogContent = new JPanel(new BorderLayout());
+                dialogContent.add(scrollPane, BorderLayout.CENTER);
+                dialogContent.add(buttonPanel, BorderLayout.SOUTH);
+
+                JOptionPane.showMessageDialog(this, dialogContent, "Facture Générée", JOptionPane.INFORMATION_MESSAGE);
+
+                clearCart(); // Vider le panier après succès
+                refreshProductSelectionTable(); // Rafraîchir la table des produits (stock mis à jour)
 
                 if (dataListener != null) {
-                    dataListener.onPharmacieDataChanged();
+                    dataListener.onPharmacieDataChanged(); // Notifier MainFrame pour rafraîchir les autres panels
                 }
             } else {
                 setMessage("Erreur: Impossible de finaliser la vente. Problème de base de données ou de stock.", Color.RED);
@@ -557,60 +624,119 @@ public class VentePanel extends JPanel {
         }
     }
 
+    /**
+     * Génère le texte formaté de la facture pour l'impression.
+     * @param facture La facture à formater.
+     * @param montantDonne Le montant donné par le client.
+     * @return Une chaîne de caractères représentant la facture.
+     */
     private String generateFactureText(Facture facture, double montantDonne) {
         StringBuilder sb = new StringBuilder();
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
 
-        sb.append("=====================================================\n");
-        sb.append("         PHARMACIE ").append(pharmacie.getNom().toUpperCase()).append("       \n");
-        sb.append("         Adresse: ").append(pharmacie.getAdresse()).append("       \n");
-        sb.append("=====================================================\n");
-        sb.append("                 FACTURE DE VENTE                  \n");
-        sb.append("-----------------------------------------------------\n");
+        // Largeur totale de la facture pour le formatage
+        int factureWidth = 60; // Gardons 60 caractères pour le design type reçu de caisse
+
+        String separator = "=".repeat(factureWidth);
+        String thinSeparator = "-".repeat(factureWidth);
+
+        // Header de la pharmacie
+        sb.append(separator).append("\n");
+        sb.append(centerText("PHARMACIE " + pharmacie.getNom().toUpperCase(), factureWidth)).append("\n");
+        sb.append(centerText("Adresse: " + pharmacie.getAdresse(), factureWidth)).append("\n");
+        sb.append(separator).append("\n");
+        sb.append(centerText("FACTURE DE VENTE", factureWidth)).append("\n");
+        sb.append(thinSeparator).append("\n");
+
+        // Détails de la facture
         sb.append(String.format("Facture N°: %s\n", facture.getNumeroFacture()));
         sb.append(String.format("Date:       %s\n", facture.getDateFacture().format(formatter)));
         sb.append(String.format("Vendu par:  %s (ID: %d)\n", facture.getUtilisateur().getNomUtilisateur(), facture.getUtilisateur().getId()));
-        sb.append("-----------------------------------------------------\n");
-        sb.append(String.format("%-25s %5s %10s %10s\n", "Produit", "Qté", "Prix U.", "Sous-Total"));
-        sb.append("-----------------------------------------------------\n");
+        sb.append(thinSeparator).append("\n");
+
+        // Lignes de produits
+        // "Produit" (30), "Qté" (5), "Prix U." (10), "Sous-Total" (12) = 57 + 3 espaces = 60
+        sb.append(String.format("%-30s %5s %10s %12s\n", "Produit", "Qté", "Prix U.", "Sous-Total"));
+        sb.append(thinSeparator).append("\n");
 
         for (LigneFacture ligne : facture.getLignesFacture()) {
-            sb.append(String.format("%-25.25s %5d %10.2f %10.2f\n",
-                    ligne.getProduit().getNom(),
+            String productName = ligne.getProduit().getNom();
+            if (productName.length() > 30) {
+                productName = productName.substring(0, 27) + "..."; // Tronque si trop long
+            }
+            sb.append(String.format("%-30s %5d %10.2f %12.2f\n",
+                    productName,
                     ligne.getQuantite(),
-                    ligne.getProduit().calculerPrixTTC(),
-                    ligne.getSousTotal()));
+                    ligne.getPrixUnitaire(), // Prix unitaire TTC de la ligne
+                    ligne.getSousTotal())); // Sous-total TTC de la ligne
         }
-        sb.append("-----------------------------------------------------\n");
-        sb.append(String.format("%-40s %10.2f FCFA\n", "TOTAL HORS TAXE (HT):", facture.getTotalHt()));
-        sb.append(String.format("%-40s %10.2f FCFA\n", "TOTAL GLOBAL (TTC):", facture.getMontantTotal()));
+        sb.append(thinSeparator).append("\n");
 
+        // Totaux
+        // Les labels sont alignés à gauche, les montants à droite sur 12 caractères
+        sb.append(String.format("%-45s %12.2f FCFA\n", "TOTAL HORS TAXE (HT):", facture.getTotalHt()));
+        // Calcule la TVA directement si elle n'est pas un attribut de la facture
+        double tvaAmount = facture.getMontantTotal() - facture.getTotalHt();
+        sb.append(String.format("%-45s %12.2f FCFA\n", "TVA (18%):", tvaAmount));
+        sb.append(String.format("%-45s %12.2f FCFA\n", "TOTAL GLOBAL (TTC):", facture.getMontantTotal()));
+
+        // Section Assurance (utilise les getters de votre AssuranceSocial)
         if (facture.getAssuranceSocial() != null) {
-            sb.append("-----------------------------------------------------\n");
-            sb.append(String.format("Assurance Sociale: %s\n", facture.getAssuranceSocial().getNom_assurance()));
+            sb.append(thinSeparator).append("\n");
+            sb.append(String.format("Assurance Sociale: %s\n", facture.getAssuranceSocial().getNom_assurance())); // Utilise getNom_assurance()
             sb.append(String.format("Taux Prise en Charge: %.0f%%\n", facture.getAssuranceSocial().getTauxDePriseEnCharge() * 100));
-            sb.append(String.format("Montant Pris en Charge: %10.2f FCFA\n", facture.getMontantPrisEnChargeAssurance()));
+            sb.append(String.format("%-45s %12.2f FCFA\n", "Montant Pris en Charge:", facture.getMontantPrisEnChargeAssurance()));
         }
 
-        sb.append("-----------------------------------------------------\n");
-        sb.append(String.format("%-40s %10.2f FCFA\n", "MONTANT CLIENT À PAYER:", facture.getMontantRestantAPayerClient()));
-        sb.append(String.format("%-40s %10.2f FCFA\n", "Montant Payé:", montantDonne));
+        // Paiement et Monnaie
+        sb.append(thinSeparator).append("\n");
+        sb.append(String.format("%-45s %12.2f FCFA\n", "MONTANT CLIENT À PAYER:", facture.getMontantRestantAPayerClient()));
+        sb.append(String.format("%-45s %12.2f FCFA\n", "Montant Payé:", montantDonne));
 
         double monnaieARendre = montantDonne - facture.getMontantRestantAPayerClient();
-        sb.append(String.format("%-40s %10.2f FCFA\n", "Monnaie à Rendre:", monnaieARendre));
+        sb.append(String.format("%-45s %12.2f FCFA\n", "Monnaie à Rendre:", monnaieARendre));
 
-        sb.append("=====================================================\n");
-        sb.append("           MERCI DE VOTRE VISITE!                  \n");
-        sb.append("=====================================================\n");
+        // Footer
+        sb.append(separator).append("\n");
+        sb.append(centerText("MERCI DE VOTRE VISITE !", factureWidth)).append("\n");
+        sb.append(separator).append("\n");
 
         return sb.toString();
     }
 
+    /**
+     * Centre un texte donné dans une largeur spécifiée.
+     * @param text Le texte à centrer.
+     * @param width La largeur totale disponible.
+     * @return Le texte centré.
+     */
+    private String centerText(String text, int width) {
+        if (text == null || text.isEmpty()) {
+            return " ".repeat(width);
+        }
+        if (text.length() >= width) {
+            return text.substring(0, width);
+        }
+        int padding = width - text.length();
+        int leftPadding = padding / 2;
+        int rightPadding = padding - leftPadding;
+        return " ".repeat(leftPadding) + text + " ".repeat(rightPadding);
+    }
+
+    /**
+     * Définit le texte du message de statut avec une couleur.
+     * @param msg Le message à afficher.
+     * @param color La couleur du texte.
+     */
     private void setMessage(String msg, Color color) {
         messageLabel.setText(msg);
         messageLabel.setForeground(color);
     }
 
+    /**
+     * Copie le texte donné dans le presse-papiers du système.
+     * @param text Le texte à copier.
+     */
     private void copyToClipboard(String text) {
         StringSelection stringSelection = new StringSelection(text);
         Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
