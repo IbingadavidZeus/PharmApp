@@ -61,7 +61,7 @@ public class MainFrame extends JFrame implements LoginListener, PharmacieDataLis
             this.pharmacie = loadedPharmacie;
         }
 
-        setTitle("Gestion de Pharmacie");
+        setTitle("PharmApp");
         setSize(1000, 700);
         setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         setLocationRelativeTo(null);
